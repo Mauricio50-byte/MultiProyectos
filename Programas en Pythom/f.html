@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simulación Realista de Semáforos 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #controles {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        .grupo-entrada {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .estado {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f0f0f0;
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 4px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="controles">
+        <h3>Semáforo 1</h3>
+        <div class="grupo-entrada">
+            <label>Velocidad promedio (km/h):</label>
+            <input type="number" id="velocidad1" value="50" min="0">
+        </div>
+        <div class="grupo-entrada">
+            <label>Vehículos retenidos:</label>
+            <input type="number" id="vehiculos1" value="10" min="0">
+        </div>
+        <div class="grupo-entrada">
+            <label>Vehículos que pasan:</label>
+            <input type="number" id="vehiculosQuePasan1" value="5" min="0">
+        </div>
+        <div class="grupo-entrada">
+            <label>Tiempo de recolección (min):</label>
+            <input type="number" id="tiempo1" value="5" min="0">
+        </div>
+        <div class="estado" id="estado1">
+            Estado: <span id="estadoActual1">Calculando...</span><br>
+            Densidad: <span id="densidad1">-</span><br>
+            Flujo: <span id="flujo1">-</span><br>
+            Tiempo verde: <span id="tiempoVerde1">-</span>s
+        </div>
+        
+        <h3>Semáforo 2</h3>
+        <div class="grupo-entrada">
+            <label>Velocidad promedio (km/h):</label>
+            <input type="number" id="velocidad2" value="35" min="0">
+        </div>
+        <div class="grupo-entrada">
+            <label>Vehículos retenidos:</label>
+            <input type="number" id="vehiculos2" value="4" min="0">
+        </div>
+        <div class="grupo-entrada">
+            <label>Vehículos que pasan:</label>
+            <input type="number" id="vehiculosQuePasan2" value="8" min="0">
+        </div>
+        <div class="grupo-entrada">
+            <label>Tiempo de recolección (min):</label>
+            <input type="number" id="tiempo2" value="5" min="0">
+        </div>
+        <div class="estado" id="estado2">
+            Estado: <span id="estadoActual2">Calculando...</span><br>
+            Densidad: <span id="densidad2">-</span><br>
+            Flujo: <span id="flujo2">-</span><br>
+            Tiempo verde: <span id="tiempoVerde2">-</span>s
+        </div>
+        
+        <button onclick="actualizarSimulacion()">Actualizar Simulación</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let escena, camara, renderizador;
+        let semaforo1, semaforo2;
+        let autos = [];
+        const LONGITUD_CALLE = 100; // Aumentado para mas espacio
+        const TAU = 1.5; // constante de tiempo del sistema
+        const TIEMPO_AMARILLO = 3; // segundos
+        
+        let estadoSemaforo1 = { actual: 'rojo', tiempoRestante: 0, tiempoVerde: 0, tiempoRojo: 0 };
+        let estadoSemaforo2 = { actual: 'rojo', tiempoRestante: 0, tiempoVerde: 0, tiempoRojo: 0 };
+
+        function inicializar() {
+            escena = new THREE.Scene();
+            escena.background = new THREE.Color(0x87CEEB);
+            
+            camara = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderizador = new THREE.WebGLRenderer({ antialias: true });
+            renderizador.setSize(window.innerWidth, window.innerHeight);
+            renderizador.shadowMap.enabled = true;
+            renderizador.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderizador.domElement);
+
+            // Mejor iluminacion
+            const luzAmbiente = new THREE.AmbientLight(0xffffff, 0.6);
+            escena.add(luzAmbiente);
+            
+            const luzDireccional = new THREE.DirectionalLight(0xffffff, 0.8);
+            luzDireccional.position.set(100, 100, 100);
+            luzDireccional.castShadow = true;
+            luzDireccional.shadow.mapSize.width = 2048;
+            luzDireccional.shadow.mapSize.height = 2048;
+            escena.add(luzDireccional);
+
+            // Posicion de camara mejorada
+            camara.position.set(150, 100, 150);
+            camara.lookAt(0, 0, 0);
+
+            crearAmbiente();
+            crearSemaforos();
+            crearAutos();
+
+            animar();
+            actualizarSimulacion();
+        }
+
+        function crearAmbiente() {
+            // Suelo con textura mejorada
+            const geometriaSuelo = new THREE.PlaneGeometry(300, 300);
+            const materialSuelo = new THREE.MeshPhongMaterial({ 
+                color: 0x3a9b3a,
+                shininess: 10
+            });
+            const suelo = new THREE.Mesh(geometriaSuelo, materialSuelo);
+            suelo.rotation.x = -Math.PI / 2;
+            suelo.receiveShadow = true;
+            escena.add(suelo);
+
+            // Carreteras mas anchas y realistas
+            crearCalle(new THREE.Vector3(0, 0.1, 0), LONGITUD_CALLE * 2, 16, 0);
+            crearCalle(new THREE.Vector3(0, 0.1, 0), 16, LONGITUD_CALLE * 2, Math.PI/2);
+        }
+
+        function crearCalle(posicion, ancho, alto, rotacion) {
+            // Asfalto mas realista
+            const geometriaCalle = new THREE.PlaneGeometry(ancho, alto);
+            const materialCalle = new THREE.MeshPhongMaterial({ 
+                color: 0x333333,
+                shininess: 30,
+                side: THREE.DoubleSide
+            });
+            const calle = new THREE.Mesh(geometriaCalle, materialCalle);
+            calle.rotation.x = -Math.PI / 2;
+            calle.rotation.z = rotacion;
+            calle.position.copy(posicion);
+            calle.receiveShadow = true;
+            escena.add(calle);
+
+            // Lineas de la carretera mas realistas
+            const crearLineaCalle = (desplazamientoX, desplazamientoZ) => {
+                const geometriaLinea = new THREE.PlaneGeometry(ancho * 0.9, 0.3);
+                const materialLinea = new THREE.MeshPhongMaterial({ 
+                    color: 0xffffff,
+                    side: THREE.DoubleSide
+                });
+                const linea = new THREE.Mesh(geometriaLinea, materialLinea);
+                linea.rotation.x = -Math.PI / 2;
+                linea.rotation.z = rotacion;
+                linea.position.set(desplazamientoX, 0.11, desplazamientoZ);
+                escena.add(linea);
+            };
+
+            crearLineaCalle(0, 0);
+            if (rotacion === 0) {
+                crearLineaCalle(0, 4);
+                crearLineaCalle(0, -4);
+            } else {
+                crearLineaCalle(4, 0);
+                crearLineaCalle(-4, 0);
+            }
+        }
+
+        function crearSemaforo() {
+            const grupo = new THREE.Group();
+            
+            // Poste mas realista
+            const geometriaPoste = new THREE.CylinderGeometry(0.4, 0.5, 15);
+            const materialPoste = new THREE.MeshPhongMaterial({
+                color: 0x333333,
+                shininess: 30
+            });
+            const poste = new THREE.Mesh(geometriaPoste, materialPoste);
+            poste.position.y = 7.5;
+            poste.castShadow = true;
+            grupo.add(poste);
+            
+            // Caja del semaforo mejorada
+            const geometriaCaja = new THREE.BoxGeometry(2.5, 7, 2.5);
+            const materialCaja = new THREE.MeshPhongMaterial({
+                color: 0x1a1a1a,
+                shininess: 30
+            });
+            const caja = new THREE.Mesh(geometriaCaja, materialCaja);
+            caja.position.y = 13;
+            caja.castShadow = true;
+            grupo.add(caja);
+            
+            // Luces mas realistas
+            const luces = {
+                rojo: crearLuz(0xff0000, 0, 15),
+                amarillo: crearLuz(0xffff00, 0, 13),
+                verde: crearLuz(0x00ff00, 0, 11)
+            };
+            
+            Object.values(luces).forEach(luz => grupo.add(luz));
+            grupo.luces = luces;
+            
+            return grupo;
+        }
+
+        function crearLuz(color, x, y) {
+            const geometria = new THREE.SphereGeometry(0.6);
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.2,
+                shininess: 100
+            });
+            const luz = new THREE.Mesh(geometria, material);
+            luz.position.set(x, y, 0);
+            luz.castShadow = true;
+            
+            const puntoLuz = new THREE.PointLight(color, 0.5, 10);
+            puntoLuz.position.copy(luz.position);
+            luz.add(puntoLuz);
+            
+            return luz;
+        }
+
+        function crearAuto() {
+            const grupo = new THREE.Group();
+            
+            // Cuerpo del auto mas detallado
+            const geometriaCuerpo = new THREE.BoxGeometry(4.5, 1.8, 2.2);
+            const materialCuerpo = new THREE.MeshPhongMaterial({
+                color: Math.random() * 0xffffff,
+                shininess: 70
+            });
+            const cuerpo = new THREE.Mesh(geometriaCuerpo, materialCuerpo);
+            cuerpo.position.y = 0.9;
+            cuerpo.castShadow = true;
+            grupo.add(cuerpo);
+            
+            // Techo mas estilizado
+            const geometriaTecho = new THREE.BoxGeometry(3, 1.2, 2);
+            const techo = new THREE.Mesh(geometriaTecho, materialCuerpo);
+            techo.position.y = 2.1;
+            techo.position.x = -0.3;
+            techo.castShadow = true;
+            grupo.add(techo);
+            
+            // Ruedas mas detalladas
+            const geometriaRueda = new THREE.CylinderGeometry(0.5, 0.5, 0.4);
+            const materialRueda = new THREE.MeshPhongMaterial({
+                color: 0x333333,
+                shininess: 50
+            });
+            const posicionesRuedas = [
+                [-1.7, 0.5, 1.2], [1.7, 0.5, 1.2],
+                [-1.7, 0.5, -1.2], [1.7, 0.5, -1.2]
+            ];
+            
+            posicionesRuedas.forEach(pos => {
+                const rueda = new THREE.Mesh(geometriaRueda, materialRueda);
+                rueda.position.set(...pos);
+                rueda.rotation.z = Math.PI/2;
+                rueda.castShadow = true;
+                grupo.add(rueda);
+            });
+            
+            return grupo;
+        }
+
+        function calcularParametrosTrafico(velocidad, vehiculos, vehiculosQuePasan, tiempo) {
+            // Validación de entradas
+            velocidad = Math.max(5, velocidad); // Mínimo 5 km/h
+            vehiculos = Math.max(0, vehiculos);
+            vehiculosQuePasan = Math.max(1, vehiculosQuePasan);
+            tiempo = Math.max(0.1, tiempo);
+            
+            // Convertir velocidad a m/s
+            const velocidadMS = velocidad / 3.6;
+            
+            // Parámetros del sistema
+            const Kp = 0.5;  // Ganancia proporcional
+            const Ti = 2.0;  // Tiempo integral
+            const Td = 0.5;  // Tiempo derivativo
+            
+            // Función de transferencia en el dominio de Laplace
+            // G(s) = Kp(1 + 1/(Ti*s) + Td*s)
+            
+            // Cálculo de la densidad (vehículos/metro)
+            const densidad = vehiculos / LONGITUD_CALLE;
+            
+            // Flujo de tráfico (vehículos/segundo)
+            const flujo = vehiculosQuePasan / tiempo;
+            
+            // Tiempo de ciclo base (segundos)
+            const T = 120; // Tiempo total del ciclo
+            
+            // Calcular los coeficientes del controlador PID en el dominio de Laplace
+            const s = 1 / tiempo; // Aproximación de la variable compleja s
+            const controladorPID = Kp * (1 + 1/(Ti*s) + Td*s);
+            
+            // Factor de congestión basado en la densidad crítica
+            const densidadCritica = 0.1; // vehículos/metro
+            const factorCongestion = densidad / densidadCritica;
+            
+            // Respuesta del sistema en el dominio del tiempo
+            const factorRespuesta = Math.exp(-factorCongestion * s);
+            
+            // Cálculo del tiempo verde considerando la respuesta del sistema
+            let tiempoVerde = T * (controladorPID * factorRespuesta) / (1 + controladorPID * factorRespuesta);
+            
+            // Ajuste del tiempo verde basado en el flujo y la velocidad
+            const factorFlujo = Math.min(1.5, flujo / velocidadMS);
+            tiempoVerde *= factorFlujo;
+            
+            // Límites prácticos para el tiempo verde
+            tiempoVerde = Math.max(15, Math.min(60, tiempoVerde));
+            
+            // Cálculo del tiempo rojo basado en el tiempo verde del otro semáforo
+            // y el tiempo de despeje de la intersección
+            const tiempoDespeje = Math.ceil(10 / velocidadMS); // tiempo para cruzar la intersección
+            const TIEMPO_AMARILLO = 3;
+            const tiempoRojo = tiempoVerde + TIEMPO_AMARILLO + tiempoDespeje;
+            
+            // Ajuste del tiempo rojo para mantener la coordinación
+            const tiempoRojoAjustado = Math.max(tiempoRojo, tiempoVerde * 1.2);
+            
+            // Cálculo de métricas adicionales del sistema
+            const factorEstabilidad = 1 / (1 + factorCongestion * s);
+            const margenEstabilidad = Math.min(1, factorEstabilidad);
+            
+            return {
+                densidad: densidad,
+                flujo: flujo,
+                tiempoVerde: tiempoVerde,
+                tiempoRojo: tiempoRojoAjustado,
+                factorCongestion: factorCongestion,
+                factorFlujo: factorFlujo,
+                estabilidad: margenEstabilidad
+            };
+        }
+    function calcularParametrosTrafico(velocidad, vehiculos, vehiculosQuePasan, tiempo) {
+            // Validación de entradas
+            velocidad = Math.max(5, velocidad); // Mínimo 5 km/h
+            vehiculos = Math.max(0, vehiculos);
+            vehiculosQuePasan = Math.max(1, vehiculosQuePasan);
+            tiempo = Math.max(0.1, tiempo);
+            
+            // Convertir velocidad a m/s
+            const velocidadMS = velocidad / 3.6;
+            
+            // Parámetros del sistema
+            const Kp = 0.5;  // Ganancia proporcional
+            const Ti = 2.0;  // Tiempo integral
+            const Td = 0.5;  // Tiempo derivativo
+            
+            // Función de transferencia en el dominio de Laplace
+            // G(s) = Kp(1 + 1/(Ti*s) + Td*s)
+            
+            // Cálculo de la densidad (vehículos/metro)
+            const densidad = vehiculos / LONGITUD_CALLE;
+            
+            // Flujo de tráfico (vehículos/segundo)
+            const flujo = vehiculosQuePasan / tiempo;
+            
+            // Tiempo de ciclo base (segundos)
+            const T = 120; // Tiempo total del ciclo
+            
+            // Calcular los coeficientes del controlador PID en el dominio de Laplace
+            const s = 1 / tiempo; // Aproximación de la variable compleja s
+            const controladorPID = Kp * (1 + 1/(Ti*s) + Td*s);
+            
+            // Factor de congestión basado en la densidad crítica
+            const densidadCritica = 0.1; // vehículos/metro
+            const factorCongestion = densidad / densidadCritica;
+            
+            // Respuesta del sistema en el dominio del tiempo
+            const factorRespuesta = Math.exp(-factorCongestion * s);
+            
+            // Cálculo del tiempo verde considerando la respuesta del sistema
+            let tiempoVerde = T * (controladorPID * factorRespuesta) / (1 + controladorPID * factorRespuesta);
+            
+            // Ajuste del tiempo verde basado en el flujo y la velocidad
+            const factorFlujo = Math.min(1.5, flujo / velocidadMS);
+            tiempoVerde *= factorFlujo;
+            
+            // Límites prácticos para el tiempo verde
+            tiempoVerde = Math.max(15, Math.min(60, tiempoVerde));
+            
+            // Cálculo del tiempo rojo basado en el tiempo verde del otro semáforo
+            // y el tiempo de despeje de la intersección
+            const tiempoDespeje = Math.ceil(10 / velocidadMS); // tiempo para cruzar la intersección
+            const TIEMPO_AMARILLO = 3;
+            const tiempoRojo = tiempoVerde + TIEMPO_AMARILLO + tiempoDespeje;
+            
+            // Ajuste del tiempo rojo para mantener la coordinación
+            const tiempoRojoAjustado = Math.max(tiempoRojo, tiempoVerde * 1.2);
+            
+            // Cálculo de métricas adicionales del sistema
+            const factorEstabilidad = 1 / (1 + factorCongestion * s);
+            const margenEstabilidad = Math.min(1, factorEstabilidad);
+            
+            return {
+                densidad: densidad,
+                flujo: flujo,
+                tiempoVerde: tiempoVerde,
+                tiempoRojo: tiempoRojoAjustado,
+                factorCongestion: factorCongestion,
+                factorFlujo: factorFlujo,
+                estabilidad: margenEstabilidad
+            };
+        }
+
+        function actualizarEstadoSemaforo(semaforo, estado) {
+
+            const velocidad1 = parseFloat(document.getElementById('velocidad1').value);
+            const vehiculos1 = parseFloat(document.getElementById('vehiculos1').value);
+            
+            // Validación de entrada
+            if (isNaN(velocidad1) || isNaN(vehiculos1)) {
+                alert('Por favor, ingrese valores numéricos válidos');
+                return;
+            }
+
+            Object.values(semaforo.luces).forEach(luz => {
+                luz.material.emissiveIntensity = 0.2;
+                luz.children[0].intensity = 0.1;
+            });
+            
+            const luz = semaforo.luces[estado];
+            if (luz) {
+                luz.material.emissiveIntensity = 1;
+                luz.children[0].intensity = 1;
+            }
+        }
+
+        function actualizarSimulacion() {
+            const velocidad1 = parseFloat(document.getElementById('velocidad1').value);
+            const vehiculos1 = parseFloat(document.getElementById('vehiculos1').value);
+            const vehiculosQuePasan1 = parseFloat(document.getElementById('vehiculosQuePasan1').value);
+            const tiempo1 = parseFloat(document.getElementById('tiempo1').value);
+
+            const velocidad2 = parseFloat(document.getElementById('velocidad2').value);
+            const vehiculos2 = parseFloat(document.getElementById('vehiculos2').value);
+            const vehiculosQuePasan2 = parseFloat(document.getElementById('vehiculosQuePasan2').value);
+            const tiempo2 = parseFloat(document.getElementById('tiempo2').value);
+
+            const params1 = calcularParametrosTrafico(velocidad1, vehiculos1, vehiculosQuePasan1, tiempo1);
+            const params2 = calcularParametrosTrafico(velocidad2, vehiculos2, vehiculosQuePasan2, tiempo2);
+
+            estadoSemaforo1 = { 
+                actual: 'verde', 
+                tiempoRestante: params1.tiempoVerde,
+                tiempoVerde: params1.tiempoVerde,
+                tiempoRojo: params1.tiempoRojo
+            };
+            
+            estadoSemaforo2 = { 
+                actual: 'rojo', 
+                tiempoRestante: params1.tiempoVerde + TIEMPO_AMARILLO,
+                tiempoVerde: params2.tiempoVerde,
+                tiempoRojo: params2.tiempoRojo
+            };
+
+            // Actualizar display con mas precision
+            document.getElementById('densidad1').textContent = params1.densidad.toFixed(2) + ' veh/m';
+            document.getElementById('flujo1').textContent = params1.flujo.toFixed(2) + ' veh/s';
+            document.getElementById('tiempoVerde1').textContent = params1.tiempoVerde.toFixed(1);
+            
+            document.getElementById('densidad2').textContent = params2.densidad.toFixed(2) + ' veh/m';
+            document.getElementById('flujo2').textContent = params2.flujo.toFixed(2) + ' veh/s';
+            document.getElementById('tiempoVerde2').textContent = params2.tiempoVerde.toFixed(1);
+
+            crearAutos();
+        }
+
+        let tiempoAnterior = 0;
+        function animar(tiempoActual) {
+            requestAnimationFrame(animar);
+            
+            const tiempoDelta = Math.min((tiempoActual - tiempoAnterior) / 1000, 0.1); // Limitar delta para estabilidad
+            tiempoAnterior = tiempoActual;
+            
+            actualizarTemporizadoresSemaforo(tiempoDelta);
+            actualizarVehiculos(tiempoDelta);
+            
+            // Animacion suave de la camara
+            camara.position.y = 100 + Math.sin(tiempoActual * 0.0005) * 10;
+            camara.lookAt(0, 0, 0);
+            
+            renderizador.render(escena, camara);
+        }
+
+        function actualizarTemporizadoresSemaforo(tiempoDelta) {
+            // Actualizar semaforo 1 con transiciones mas suaves
+            estadoSemaforo1.tiempoRestante -= tiempoDelta;
+            if (estadoSemaforo1.tiempoRestante <= 0) {
+                switch (estadoSemaforo1.actual) {
+                    case 'verde':
+                        estadoSemaforo1.actual = 'amarillo';
+                        estadoSemaforo1.tiempoRestante = TIEMPO_AMARILLO;
+                        break;
+                    case 'amarillo':
+                        estadoSemaforo1.actual = 'rojo';
+                        estadoSemaforo1.tiempoRestante = estadoSemaforo2.tiempoVerde;
+                        break;
+                    case 'rojo':
+                        estadoSemaforo1.actual = 'verde';
+                        const factorAleatorio1 = 0.8 + Math.random() * 0.4;
+                        estadoSemaforo1.tiempoRestante = estadoSemaforo1.tiempoVerde * factorAleatorio1;
+                        break;
+                }
+            }
+
+            estadoSemaforo2.tiempoRestante -= tiempoDelta;
+            if (estadoSemaforo2.tiempoRestante <= 0) {
+                switch (estadoSemaforo2.actual) {
+                    case 'verde':
+                        estadoSemaforo2.actual = 'amarillo';
+                        estadoSemaforo2.tiempoRestante = TIEMPO_AMARILLO;
+                        break;
+                    case 'amarillo':
+                        estadoSemaforo2.actual = 'rojo';
+                        estadoSemaforo2.tiempoRestante = estadoSemaforo1.tiempoVerde;
+                        break;
+                    case 'rojo':
+                        estadoSemaforo2.actual = 'verde';
+                        const factorAleatorio2 = 0.8 + Math.random() * 0.4;
+                        estadoSemaforo2.tiempoRestante = estadoSemaforo2.tiempoVerde * factorAleatorio2;
+                        break;
+                }
+            }
+
+            actualizarEstadoSemaforo(semaforo1, estadoSemaforo1.actual);
+            actualizarEstadoSemaforo(semaforo2, estadoSemaforo2.actual);
+            
+            document.getElementById('estadoActual1').textContent = 
+                estadoSemaforo1.actual.charAt(0).toUpperCase() + estadoSemaforo1.actual.slice(1) +
+                ` (${estadoSemaforo1.tiempoRestante.toFixed(1)}s)`;
+            document.getElementById('estadoActual2').textContent = 
+                estadoSemaforo2.actual.charAt(0).toUpperCase() + estadoSemaforo2.actual.slice(1) +
+                ` (${estadoSemaforo2.tiempoRestante.toFixed(1)}s)`;
+        }
+
+        function crearAutos() {
+            // Limpiar autos existentes
+            autos.forEach(auto => escena.remove(auto));
+            autos = [];
+            
+            const autosPorCalle = Math.max(
+                parseInt(document.getElementById('vehiculos1').value),
+                parseInt(document.getElementById('vehiculos2').value)
+            );
+            
+            // Distribuir autos de manera mas realista en la carretera horizontal
+            for(let i = 0; i < autosPorCalle; i++) {
+                const auto = crearAuto();
+                auto.position.set(
+                    -LONGITUD_CALLE/2 + (LONGITUD_CALLE * i / autosPorCalle) + (Math.random() - 0.5) * 5,
+                    1,
+                    -3 + (Math.random() - 0.5) * 2
+                );
+                auto.rotation.y = 0;
+                auto.direccion = 'horizontal';
+                auto.velocidad = (parseFloat(document.getElementById('velocidad1').value) + (Math.random() - 0.5) * 5) / 3.6;
+                escena.add(auto);
+                autos.push(auto);
+            }
+            
+            // Distribuir autos en la carretera vertical
+            for(let i = 0; i < autosPorCalle; i++) {
+                const auto = crearAuto();
+                auto.position.set(
+                    3 + (Math.random() - 0.5) * 2,
+                    1,
+                    -LONGITUD_CALLE/2 + (LONGITUD_CALLE * i / autosPorCalle) + (Math.random() - 0.5) * 5
+                );
+                auto.rotation.y = Math.PI/2;
+                auto.direccion = 'vertical';
+                auto.velocidad = (parseFloat(document.getElementById('velocidad2').value) + (Math.random() - 0.5) * 5) / 3.6;
+                escena.add(auto);
+                autos.push(auto);
+            }
+        }
+
+        function actualizarVehiculos(tiempoDelta) {
+            autos.forEach(auto => {
+                let debeMoverse = false;
+                
+                const cercaInterseccion = 
+                    (auto.direccion === 'horizontal' && Math.abs(auto.position.x) < 10) ||
+                    (auto.direccion === 'vertical' && Math.abs(auto.position.z) < 10);
+                
+                if (cercaInterseccion) {
+                    if (auto.direccion === 'horizontal') {
+                        debeMoverse = estadoSemaforo1.actual === 'verde' || 
+                                   (estadoSemaforo1.actual === 'amarillo' && Math.random() > 0.5);
+                    } else {
+                        debeMoverse = estadoSemaforo2.actual === 'verde' ||
+                                   (estadoSemaforo2.actual === 'amarillo' && Math.random() > 0.5);
+                    }
+                } else {
+                    debeMoverse = true;
+                }
+                
+                if (debeMoverse) {
+                    if (auto.direccion === 'horizontal') {
+                        auto.position.x += auto.velocidad * tiempoDelta;
+                        if (auto.position.x > LONGITUD_CALLE/2) {
+                            auto.position.x = -LONGITUD_CALLE/2;
+                        }
+                    } else {
+                        auto.position.z += auto.velocidad * tiempoDelta;
+                        if (auto.position.z > LONGITUD_CALLE/2) {
+                            auto.position.z = -LONGITUD_CALLE/2;
+                        }
+                    }
+                }
+            });
+        }
+
+        function crearSemaforos() {
+            semaforo1 = crearSemaforo();
+            semaforo2 = crearSemaforo();
+            
+            semaforo1.position.set(8, 0, -8);
+            semaforo2.position.set(-8, 0, 8);
+            semaforo2.rotation.y = Math.PI/2;
+            
+            escena.add(semaforo1);
+            escena.add(semaforo2);
+        }
+
+        window.addEventListener('resize', () => {
+            camara.aspect = window.innerWidth / window.innerHeight;
+            camara.updateProjectionMatrix();
+            renderizador.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        inicializar();
+    </script>
+</body>
+</html>

@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominó Profesional - Caribe Enseña</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .score {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .turn-indicator {
+            font-size: 1.1rem;
+            padding: 8px 16px;
+            background: #ff6b6b;
+            border-radius: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .game-board {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+        }
+
+        .board-area {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 300px;
+            position: relative;
+            overflow: auto;
+        }
+
+        .domino-chain {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            min-height: 100%;
+        }
+
+        .domino {
+            width: 60px;
+            height: 120px;
+            background: #f8f9fa;
+            border: 3px solid #333;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .domino:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .domino.horizontal {
+            width: 120px;
+            height: 60px;
+            flex-direction: row;
+        }
+
+        .domino.selected {
+            border-color: #ff6b6b;
+            transform: translateY(-10px);
+        }
+
+        .domino.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .domino-half {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .domino-half:first-child {
+            border-bottom: 2px solid #333;
+        }
+
+        .domino.horizontal .domino-half:first-child {
+            border-bottom: none;
+            border-right: 2px solid #333;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #333;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        /* Patrones de puntos para cada número */
+        .dots-1 .dot { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        
+        .dots-2 .dot:nth-child(1) { top: 25%; left: 25%; }
+        .dots-2 .dot:nth-child(2) { bottom: 25%; right: 25%; }
+        
+        .dots-3 .dot:nth-child(1) { top: 25%; left: 25%; }
+        .dots-3 .dot:nth-child(2) { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .dots-3 .dot:nth-child(3) { bottom: 25%; right: 25%; }
+        
+        .dots-4 .dot:nth-child(1) { top: 25%; left: 25%; }
+        .dots-4 .dot:nth-child(2) { top: 25%; right: 25%; }
+        .dots-4 .dot:nth-child(3) { bottom: 25%; left: 25%; }
+        .dots-4 .dot:nth-child(4) { bottom: 25%; right: 25%; }
+        
+        .dots-5 .dot:nth-child(1) { top: 25%; left: 25%; }
+        .dots-5 .dot:nth-child(2) { top: 25%; right: 25%; }
+        .dots-5 .dot:nth-child(3) { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .dots-5 .dot:nth-child(4) { bottom: 25%; left: 25%; }
+        .dots-5 .dot:nth-child(5) { bottom: 25%; right: 25%; }
+        
+        .dots-6 .dot:nth-child(1) { top: 20%; left: 25%; }
+        .dots-6 .dot:nth-child(2) { top: 20%; right: 25%; }
+        .dots-6 .dot:nth-child(3) { top: 50%; left: 25%; transform: translateY(-50%); }
+        .dots-6 .dot:nth-child(4) { top: 50%; right: 25%; transform: translateY(-50%); }
+        .dots-6 .dot:nth-child(5) { bottom: 20%; left: 25%; }
+        .dots-6 .dot:nth-child(6) { bottom: 20%; right: 25%; }
+
+        .player-hand {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .player-hand h3 {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .hand-tiles {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            text-align: center;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .message.success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
+        }
+
+        .message.error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #f44336;
+        }
+
+        .message.info {
+            background: rgba(33, 150, 243, 0.2);
+            border: 2px solid #2196F3;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .modal p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .domino {
+                width: 45px;
+                height: 90px;
+            }
+            
+            .domino.horizontal {
+                width: 90px;
+                height: 45px;
+            }
+            
+            .dot {
+                width: 6px;
+                height: 6px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎲 Dominó Profesional 🎲</h1>
+        <p>Fundación Caribe Enseña</p>
+    </div>
+
+    <div class="game-info">
+        <div class="score">
+            <span>Jugador: <span id="playerScore">0</span></span>
+        </div>
+        <div class="turn-indicator" id="turnIndicator">
+            Tu turno
+        </div>
+        <div class="score">
+            <span>CPU: <span id="cpuScore">0</span></span>
+        </div>
+    </div>
+
+    <div class="game-board">
+        <div class="board-area">
+            <div class="domino-chain" id="dominoChain">
+                <div class="message info">
+                    ¡Haz clic en "Nuevo Juego" para comenzar!
+                </div>
+            </div>
+        </div>
+
+        <div class="player-hand">
+            <h3>Tus Fichas</h3>
+            <div class="hand-tiles" id="playerHand"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="newGame()">Nuevo Juego</button>
+            <button class="btn btn-secondary" onclick="passTurn()" id="passBtn" disabled>Pasar Turno</button>
+            <button class="btn btn-secondary" onclick="showRules()">Reglas</button>
+        </div>
+
+        <div id="messageArea"></div>
+    </div>
+
+    <!-- Modal para mostrar ganador -->
+    <div class="modal" id="gameModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">¡Juego Terminado!</h2>
+            <p id="modalMessage"></p>
+            <button class="btn btn-primary" onclick="closeModal(); newGame();">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <!-- Modal para reglas -->
+    <div class="modal" id="rulesModal">
+        <div class="modal-content">
+            <h2>📋 Reglas del Dominó</h2>
+            <div style="text-align: left; margin: 20px 0;">
+                <p><strong>Objetivo:</strong> Ser el primero en colocar todas tus fichas.</p>
+                <br>
+                <p><strong>Cómo jugar:</strong></p>
+                <ul style="margin-left: 20px;">
+                    <li>Cada jugador recibe 7 fichas al inicio</li>
+                    <li>El juego comienza con la ficha doble más alta</li>
+                    <li>Debes colocar fichas que coincidan con los extremos</li>
+                    <li>Si no puedes jugar, debes pasar el turno</li>
+                    <li>Gana quien se quede sin fichas primero</li>
+                </ul>
+            </div>
+            <button class="btn btn-primary" onclick="closeRulesModal()">Entendido</button>
+        </div>
+    </div>
+
+    <script>
+        class DominoGame {
+            constructor() {
+                this.tiles = [];
+                this.playerHand = [];
+                this.cpuHand = [];
+                this.chain = [];
+                this.currentPlayer = 'player';
+                this.gameStarted = false;
+                this.selectedTile = null;
+                this.playerScore = 0;
+                this.cpuScore = 0;
+                this.leftEnd = null;
+                this.rightEnd = null;
+                
+                this.initializeTiles();
+            }
+
+            initializeTiles() {
+                this.tiles = [];
+                for (let i = 0; i <= 6; i++) {
+                    for (let j = i; j <= 6; j++) {
+                        this.tiles.push({ left: i, right: j, id: `${i}-${j}` });
+                    }
+                }
+            }
+
+            shuffleTiles() {
+                for (let i = this.tiles.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.tiles[i], this.tiles[j]] = [this.tiles[j], this.tiles[i]];
+                }
+            }
+
+            dealTiles() {
+                this.shuffleTiles();
+                this.playerHand = this.tiles.splice(0, 7);
+                this.cpuHand = this.tiles.splice(0, 7);
+                
+                // Encontrar la ficha doble más alta para comenzar
+                let startTile = null;
+                let maxDouble = -1;
+                
+                [...this.playerHand, ...this.cpuHand].forEach((tile, index) => {
+                    if (tile.left === tile.right && tile.left > maxDouble) {
+                        maxDouble = tile.left;
+                        startTile = { tile, owner: index < 7 ? 'player' : 'cpu', index: index < 7 ? index : index - 7 };
+                    }
+                });
+                
+                if (startTile) {
+                    this.chain = [startTile.tile];
+                    this.leftEnd = startTile.tile.left;
+                    this.rightEnd = startTile.tile.right;
+                    
+                    if (startTile.owner === 'player') {
+                        this.playerHand.splice(startTile.index, 1);
+                        this.currentPlayer = 'cpu';
+                    } else {
+                        this.cpuHand.splice(startTile.index, 1);
+                        this.currentPlayer = 'player';
+                    }
+                } else {
+                    // Si no hay dobles, comenzar con la ficha más alta
+                    let maxTile = null;
+                    let maxSum = -1;
+                    let tileInfo = null;
+                    
+                    [...this.playerHand, ...this.cpuHand].forEach((tile, index) => {
+                        const sum = tile.left + tile.right;
+                        if (sum > maxSum) {
+                            maxSum = sum;
+                            maxTile = tile;
+                            tileInfo = { tile, owner: index < 7 ? 'player' : 'cpu', index: index < 7 ? index : index - 7 };
+                        }
+                    });
+                    
+                    this.chain = [maxTile];
+                    this.leftEnd = maxTile.left;
+                    this.rightEnd = maxTile.right;
+                    
+                    if (tileInfo.owner === 'player') {
+                        this.playerHand.splice(tileInfo.index, 1);
+                        this.currentPlayer = 'cpu';
+                    } else {
+                        this.cpuHand.splice(tileInfo.index, 1);
+                        this.currentPlayer = 'player';
+                    }
+                }
+            }
+
+            createDominoElement(tile, clickable = false) {
+                const domino = document.createElement('div');
+                domino.className = 'domino';
+                domino.dataset.tileId = tile.id;
+                
+                if (clickable) {
+                    domino.addEventListener('click', () => this.selectTile(tile));
+                }
+                
+                const leftHalf = document.createElement('div');
+                leftHalf.className = 'domino-half';
+                leftHalf.appendChild(this.createDots(tile.left));
+                
+                const rightHalf = document.createElement('div');
+                rightHalf.className = 'domino-half';
+                rightHalf.appendChild(this.createDots(tile.right));
+                
+                domino.appendChild(leftHalf);
+                domino.appendChild(rightHalf);
+                
+                return domino;
+            }
+
+            createDots(number) {
+                const container = document.createElement('div');
+                container.className = `dots-${number}`;
+                
+                for (let i = 0; i < number; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    container.appendChild(dot);
+                }
+                
+                return container;
+            }
+
+            selectTile(tile) {
+                if (this.currentPlayer !== 'player' || !this.gameStarted) return;
+                
+                // Deseleccionar ficha anterior
+                document.querySelectorAll('.domino.selected').forEach(d => d.classList.remove('selected'));
+                
+                if (this.selectedTile && this.selectedTile.id === tile.id) {
+                    this.selectedTile = null;
+                    return;
+                }
+                
+                this.selectedTile = tile;
+                document.querySelector(`[data-tile-id="${tile.id}"]`).classList.add('selected');
+                
+                this.showMessage('Ficha seleccionada. Haz clic en "Jugar en Izquierda" o "Jugar en Derecha"', 'info');
+                this.updatePlayButtons();
+            }
+
+            canPlayTile(tile, side) {
+                if (side === 'left') {
+                    return tile.left === this.leftEnd || tile.right === this.leftEnd;
+                } else {
+                    return tile.left === this.rightEnd || tile.right === this.rightEnd;
+                }
+            }
+
+            playTile(tile, side) {
+                if (!this.canPlayTile(tile, side)) return false;
+                
+                let newTile = { ...tile };
+                
+                if (side === 'left') {
+                    if (tile.right === this.leftEnd) {
+                        // No necesita rotación
+                    } else if (tile.left === this.leftEnd) {
+                        // Rotar ficha
+                        newTile = { left: tile.right, right: tile.left, id: tile.id };
+                    }
+                    this.chain.unshift(newTile);
+                    this.leftEnd = newTile.left;
+                } else {
+                    if (tile.left === this.rightEnd) {
+                        // No necesita rotación
+                    } else if (tile.right === this.rightEnd) {
+                        // Rotar ficha
+                        newTile = { left: tile.right, right: tile.left, id: tile.id };
+                    }
+                    this.chain.push(newTile);
+                    this.rightEnd = newTile.right;
+                }
+                
+                return true;
+            }
+
+            playerPlay(side) {
+                if (!this.selectedTile || this.currentPlayer !== 'player') return;
+                
+                if (this.playTile(this.selectedTile, side)) {
+                    // Remover ficha de la mano del jugador
+                    this.playerHand = this.playerHand.filter(t => t.id !== this.selectedTile.id);
+                    this.selectedTile = null;
+                    
+                    this.updateDisplay();
+                    
+                    if (this.playerHand.length === 0) {
+                        this.endGame('player');
+                        return;
+                    }
+                    
+                    this.currentPlayer = 'cpu';
+                    this.updateTurnIndicator();
+                    
+                    setTimeout(() => this.cpuPlay(), 1000);
+                } else {
+                    this.showMessage('No puedes jugar esa ficha en ese lado', 'error');
+                }
+            }
+
+            cpuPlay() {
+                if (this.currentPlayer !== 'cpu') return;
+                
+                // Buscar una ficha jugable
+                let playableTile = null;
+                let playSide = null;
+                
+                for (let tile of this.cpuHand) {
+                    if (this.canPlayTile(tile, 'left')) {
+                        playableTile = tile;
+                        playSide = 'left';
+                        break;
+                    } else if (this.canPlayTile(tile, 'right')) {
+                        playableTile = tile;
+                        playSide = 'right';
+                        break;
+                    }
+                }
+                
+                if (playableTile) {
+                    this.playTile(playableTile, playSide);
+                    this.cpuHand = this.cpuHand.filter(t => t.id !== playableTile.id);
+                    
+                    this.showMessage(`CPU jugó ${playableTile.left}|${playableTile.right} en ${playSide === 'left' ? 'izquierda' : 'derecha'}`, 'info');
+                    
+                    if (this.cpuHand.length === 0) {
+                        this.endGame('cpu');
+                        return;
+                    }
+                    
+                    this.currentPlayer = 'player';
+                } else {
+                    this.showMessage('CPU pasó el turno', 'info');
+                    this.currentPlayer = 'player';
+                }
+                
+                this.updateDisplay();
+                this.updateTurnIndicator();
+            }
+
+            passTurn() {
+                if (this.currentPlayer === 'player') {
+                    this.showMessage('Pasaste el turno', 'info');
+                    this.currentPlayer = 'cpu';
+                    this.updateTurnIndicator();
+                    setTimeout(() => this.cpuPlay(), 1000);
+                }
+            }
+
+            hasValidMoves(hand) {
+                return hand.some(tile => 
+                    this.canPlayTile(tile, 'left') || this.canPlayTile(tile, 'right')
+                );
+            }
+
+            endGame(winner) {
+                this.gameStarted = false;
+                
+                if (winner === 'player') {
+                    this.playerScore++;
+                    this.showModal('¡Felicidades! 🎉', '¡Has ganado esta ronda!');
+                } else {
+                    this.cpuScore++;
+                    this.showModal('¡CPU Ganó! 🤖', 'La CPU ganó esta ronda. ¡Inténtalo de nuevo!');
+                }
+                
+                this.updateScores();
+            }
+
+            updateDisplay() {
+                this.updateChain();
+                this.updatePlayerHand();
+                this.updatePlayButtons();
+            }
+
+            updateChain() {
+                const chainElement = document.getElementById('dominoChain');
+                chainElement.innerHTML = '';
+                
+                this.chain.forEach((tile, index) => {
+                    const domino = this.createDominoElement(tile);
+                    
+                    // Alternar orientación para mejor visualización
+                    if (index % 4 === 1 || index % 4 === 3) {
+                        domino.classList.add('horizontal');
+                    }
+                    
+                    chainElement.appendChild(domino);
+                });
+            }
+
+            updatePlayerHand() {
+                const handElement = document.getElementById('playerHand');
+                handElement.innerHTML = '';
+                
+                this.playerHand.forEach(tile => {
+                    const domino = this.createDominoElement(tile, true);
+                    
+                    // Marcar fichas jugables
+                    if (this.gameStarted && this.currentPlayer === 'player') {
+                        if (this.canPlayTile(tile, 'left') || this.canPlayTile(tile, 'right')) {
+                            domino.style.border = '3px solid #4CAF50';
+                        } else {
+                            domino.classList.add('disabled');
+                        }
+                    }
+                    
+                    handElement.appendChild(domino);
+                });
+            }
+
+            updatePlayButtons() {
+                const leftBtn = document.getElementById('playLeftBtn');
+                const rightBtn = document.getElementById('playRightBtn');
+                const passBtn = document.getElementById('passBtn');
+                
+                if (leftBtn) leftBtn.remove();
+                if (rightBtn) rightBtn.remove();
+                
+                if (this.selectedTile && this.currentPlayer === 'player' && this.gameStarted) {
+                    const controls = document.querySelector('.controls');
+                    
+                    if (this.canPlayTile(this.selectedTile, 'left')) {
+                        const leftBtn = document.createElement('button');
+                        leftBtn.id = 'playLeftBtn';
+                        leftBtn.className = 'btn btn-primary';
+                        leftBtn.textContent = 'Jugar Izquierda';
+                        leftBtn.onclick = () => this.playerPlay('left');
+                        controls.insertBefore(leftBtn, passBtn);
+                    }
+                    
+                    if (this.canPlayTile(this.selectedTile, 'right')) {
+                        const rightBtn = document.createElement('button');
+                        rightBtn.id = 'playRightBtn';
+                        rightBtn.className = 'btn btn-primary';
+                        rightBtn.textContent = 'Jugar Derecha';
+                        rightBtn.onclick = () => this.playerPlay('right');
+                        controls.insertBefore(rightBtn, passBtn);
+                    }
+                }
+                
+                passBtn.disabled = !this.gameStarted || this.currentPlayer !== 'player';
+            }
+
+            updateTurnIndicator() {
+                const indicator = document.getElementById('turnIndicator');
+                if (this.currentPlayer === 'player') {
+                    indicator.textContent = 'Tu turno';
+                    indicator.style.background = '#4CAF50';
+                } else {
+                    indicator.textContent = 'Turno CPU';
+                    indicator.style.background = '#ff6b6b';
+                }
+            }
+
+            updateScores() {
+                document.getElementById('playerScore').textContent = this.playerScore;
+                document.getElementById('cpuScore').textContent = this.cpuScore;
+            }
+
+            showMessage(text, type = 'info') {
+                const messageArea = document.getElementById('messageArea');
+                messageArea.innerHTML = `<div class="message ${type}">${text}</div>`;
+                
+                setTimeout(() => {
+                    messageArea.innerHTML = '';
+                }, 3000);
+            }
+
+            showModal(title, message) {
+                document.getElementById('modalTitle').textContent = title;
+                document.getElementById('modalMessage').textContent = message;
+                document.getElementById('gameModal').style.display = 'flex';
+            }
+
+            newGame() {
+                this.initializeTiles();
+                this.chain = [];
+                this.selectedTile = null;
+                this.gameStarted = true;
+                
+                this.dealTiles();
+                this.updateDisplay();
+                this.updateTurnIndicator();
+                
+                this.showMessage('¡Nuevo juego iniciado! Selecciona una ficha para jugar.', 'success');
+                
+                // Limpiar botones de juego
+                const leftBtn = document.getElementById('playLeftBtn');
+                const rightBtn = document.getElementById('playRightBtn');
+                if (leftBtn) leftBtn.remove();
+                if (rightBtn) rightBtn.remove();
+            }
+        }
+
+        // Instancia global del juego
+        const game = new DominoGame();
+
+        // Funciones globales
+        function newGame() {
+            game.newGame();
+        }
+
+        function passTurn() {
+            game.passTurn();
+        }
+
+        function closeModal() {
+            document.getElementById('gameModal').style.display = 'none';
+        }
+
+        function showRules() {
+            document.getElementById('rulesModal').style.display = 'flex';
+        }
+
+        function closeRulesModal() {
+            document.getElementById('rulesModal').style.display = 'none';
+        }
+
+        // Inicializar el juego
+        document.addEventListener('DOMContentLoaded', () => {
+            game.updateScores();
+        });
+    </script>
+</body>
+</html>

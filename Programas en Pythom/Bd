@@ -1,0 +1,213 @@
+-- Script para MySQL - Sistema de Censo
+
+-- Primero, eliminamos las tablas si existen para evitar conflictos
+DROP TABLE IF EXISTS CAMBIO_DIRECCION;
+DROP TABLE IF EXISTS RESIDENCIA_EXTRANJERO;
+DROP TABLE IF EXISTS RESIDENCIA_LOCAL;
+DROP TABLE IF EXISTS REGISTRO;
+DROP TABLE IF EXISTS HOMBRE;
+DROP TABLE IF EXISTS LADO_MANZANA;
+DROP TABLE IF EXISTS DIRECCION;
+DROP TABLE IF EXISTS CALLE;
+DROP TABLE IF EXISTS MANZANA;
+DROP TABLE IF EXISTS DISTRITO;
+DROP TABLE IF EXISTS MUNICIPIO;
+DROP TABLE IF EXISTS PROVINCIA;
+DROP TABLE IF EXISTS PAIS;
+DROP TABLE IF EXISTS PERSONA;
+DROP TABLE IF EXISTS NIVEL_ESTUDIO;
+
+-- Tabla NIVEL_ESTUDIO
+CREATE TABLE NIVEL_ESTUDIO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    descripcion VARCHAR(255) NOT NULL
+);
+
+-- Tabla PAIS
+CREATE TABLE PAIS (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codigo_pais VARCHAR(10) NOT NULL,
+    nombre_pais VARCHAR(255) NOT NULL,
+    poblacion_derecho INT DEFAULT 0,
+    poblacion_hecho INT DEFAULT 0
+);
+
+-- Tabla PROVINCIA
+CREATE TABLE PROVINCIA (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(20) NOT NULL,
+    nombre VARCHAR(255) NOT NULL,
+    poblacion_derecho INT DEFAULT 0,
+    poblacion_hecho INT DEFAULT 0,
+    pais_id INT NOT NULL,
+    CONSTRAINT fk_provincia_pais FOREIGN KEY (pais_id) REFERENCES PAIS(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla MUNICIPIO
+CREATE TABLE MUNICIPIO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codigo_municipio VARCHAR(20) NOT NULL,
+    nombre_municipio VARCHAR(255) NOT NULL,
+    poblacion_derecho INT DEFAULT 0,
+    poblacion_hecho INT DEFAULT 0,
+    provincia_id INT NOT NULL,
+    CONSTRAINT fk_municipio_provincia FOREIGN KEY (provincia_id) REFERENCES PROVINCIA(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla DISTRITO
+CREATE TABLE DISTRITO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    codigo VARCHAR(20) NOT NULL,
+    municipio_id INT NOT NULL,
+    CONSTRAINT fk_distrito_municipio FOREIGN KEY (municipio_id) REFERENCES MUNICIPIO(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla MANZANA
+CREATE TABLE MANZANA (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codigo_manzana VARCHAR(20) NOT NULL,
+    distrito_id INT NOT NULL,
+    CONSTRAINT fk_manzana_distrito FOREIGN KEY (distrito_id) REFERENCES DISTRITO(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla CALLE
+CREATE TABLE CALLE (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    municipio_id INT NOT NULL,
+    CONSTRAINT fk_calle_municipio FOREIGN KEY (municipio_id) REFERENCES MUNICIPIO(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla PERSONA
+CREATE TABLE PERSONA (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_pila VARCHAR(255) NOT NULL,
+    apellido1 VARCHAR(255) NOT NULL,
+    apellido2 VARCHAR(255),
+    fecha_nacimiento DATE NOT NULL,
+    dia INT NOT NULL,
+    mes INT NOT NULL,
+    anio INT NOT NULL,
+    lugar_nacimiento VARCHAR(255) NOT NULL,
+    departamento VARCHAR(255),
+    edad INT NOT NULL,
+    estatura DECIMAL(3,2),
+    sexo ENUM('masculino', 'femenino') NOT NULL,  -- Usamos ENUM en lugar de CHECK
+    dni VARCHAR(20),
+    grupo_etnico VARCHAR(100),
+    nivel_estudio_id INT,
+    estado_civil VARCHAR(50),
+    ocupacion VARCHAR(255),
+    CONSTRAINT fk_persona_nivel_estudio FOREIGN KEY (nivel_estudio_id) REFERENCES NIVEL_ESTUDIO(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla HOMBRE
+CREATE TABLE HOMBRE (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    persona_id INT NOT NULL UNIQUE,
+    situacion_militar ENUM('servicio_activo', 'reserva', 'exento', 'pendiente', 'libreta_militar', 'no_aplica') NOT NULL,  -- Reemplazamos CHECK por ENUM
+    CONSTRAINT fk_hombre_persona FOREIGN KEY (persona_id) REFERENCES PERSONA(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla LADO_MANZANA
+CREATE TABLE LADO_MANZANA (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    manzana_id INT NOT NULL,
+    calle_id INT NOT NULL,
+    numero_inicial INT NOT NULL,
+    numero_final INT NOT NULL,
+    es_par BOOLEAN NOT NULL,
+    CONSTRAINT fk_lado_manzana_manzana FOREIGN KEY (manzana_id) REFERENCES MANZANA(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_lado_manzana_calle FOREIGN KEY (calle_id) REFERENCES CALLE(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla DIRECCION
+CREATE TABLE DIRECCION (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    calle_id INT NOT NULL,
+    numero INT NOT NULL,
+    distrito_id INT NOT NULL,
+    CONSTRAINT fk_direccion_calle FOREIGN KEY (calle_id) REFERENCES CALLE(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_direccion_distrito FOREIGN KEY (distrito_id) REFERENCES DISTRITO(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla REGISTRO
+CREATE TABLE REGISTRO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    persona_id INT NOT NULL,
+    municipio_id INT NOT NULL,
+    direccion_id INT NOT NULL,
+    fecha_registro DATE NOT NULL,
+    CONSTRAINT fk_registro_persona FOREIGN KEY (persona_id) REFERENCES PERSONA(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_registro_municipio FOREIGN KEY (municipio_id) REFERENCES MUNICIPIO(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_registro_direccion FOREIGN KEY (direccion_id) REFERENCES DIRECCION(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla RESIDENCIA_LOCAL
+CREATE TABLE RESIDENCIA_LOCAL (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    persona_id INT NOT NULL,
+    municipio_id INT NOT NULL,
+    direccion_id INT NOT NULL,
+    fecha_inicio DATE NOT NULL,
+    CONSTRAINT fk_residencia_local_persona FOREIGN KEY (persona_id) REFERENCES PERSONA(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_residencia_local_municipio FOREIGN KEY (municipio_id) REFERENCES MUNICIPIO(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_residencia_local_direccion FOREIGN KEY (direccion_id) REFERENCES DIRECCION(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla RESIDENCIA_EXTRANJERO
+CREATE TABLE RESIDENCIA_EXTRANJERO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    persona_id INT NOT NULL,
+    pais_id INT NOT NULL,
+    fecha_inicio DATE NOT NULL,
+    CONSTRAINT fk_residencia_ext_persona FOREIGN KEY (persona_id) REFERENCES PERSONA(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_residencia_ext_pais FOREIGN KEY (pais_id) REFERENCES PAIS(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Tabla CAMBIO_DIRECCION
+CREATE TABLE CAMBIO_DIRECCION (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    persona_id INT NOT NULL,
+    direccion_anterior_id INT NOT NULL,
+    direccion_nueva_id INT NOT NULL,
+    motivo_cambio VARCHAR(255),
+    fecha_cambio DATE NOT NULL,
+    CONSTRAINT fk_cambio_dir_persona FOREIGN KEY (persona_id) REFERENCES PERSONA(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_cambio_dir_anterior FOREIGN KEY (direccion_anterior_id) REFERENCES DIRECCION(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT fk_cambio_dir_nueva FOREIGN KEY (direccion_nueva_id) REFERENCES DIRECCION(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+-- Crear comentarios a las tablas (en MySQL se usa COMMENT en la definición de la tabla)
+ALTER TABLE PERSONA COMMENT = 'Almacena información de todas las personas del censo';
+ALTER TABLE HOMBRE COMMENT = 'Información específica para personas de sexo masculino, incluyendo su situación militar';
+ALTER TABLE DIRECCION COMMENT = 'Contiene direcciones físicas donde viven o están registradas las personas';
+ALTER TABLE REGISTRO COMMENT = 'Población de derecho - donde la persona está oficialmente censada';
+ALTER TABLE RESIDENCIA_LOCAL COMMENT = 'Población de hecho - donde la persona realmente vive (en el país)';
+ALTER TABLE RESIDENCIA_EXTRANJERO COMMENT = 'Población de hecho - personas que viven en el extranjero';
+ALTER TABLE CAMBIO_DIRECCION COMMENT = 'Historial de cambios de domicilio de las personas';
+
+-- Crear índices para las llaves foráneas
+CREATE INDEX idx_provincia_pais ON PROVINCIA(pais_id);
+CREATE INDEX idx_municipio_provincia ON MUNICIPIO(provincia_id);
+CREATE INDEX idx_distrito_municipio ON DISTRITO(municipio_id);
+CREATE INDEX idx_manzana_distrito ON MANZANA(distrito_id);
+CREATE INDEX idx_calle_municipio ON CALLE(municipio_id);
+CREATE INDEX idx_persona_nivel ON PERSONA(nivel_estudio_id);
+CREATE INDEX idx_hombre_persona ON HOMBRE(persona_id);
+CREATE INDEX idx_lado_manzana_manzana ON LADO_MANZANA(manzana_id);
+CREATE INDEX idx_lado_manzana_calle ON LADO_MANZANA(calle_id);
+CREATE INDEX idx_direccion_calle ON DIRECCION(calle_id);
+CREATE INDEX idx_direccion_distrito ON DIRECCION(distrito_id);
+CREATE INDEX idx_registro_persona ON REGISTRO(persona_id);
+CREATE INDEX idx_registro_municipio ON REGISTRO(municipio_id);
+CREATE INDEX idx_registro_direccion ON REGISTRO(direccion_id);
+CREATE INDEX idx_residencia_local_persona ON RESIDENCIA_LOCAL(persona_id);
+CREATE INDEX idx_residencia_local_municipio ON RESIDENCIA_LOCAL(municipio_id);
+CREATE INDEX idx_residencia_local_direccion ON RESIDENCIA_LOCAL(direccion_id);
+CREATE INDEX idx_residencia_ext_persona ON RESIDENCIA_EXTRANJERO(persona_id);
+CREATE INDEX idx_residencia_ext_pais ON RESIDENCIA_EXTRANJERO(pais_id);
+CREATE INDEX idx_cambio_dir_persona ON CAMBIO_DIRECCION(persona_id);
+CREATE INDEX idx_cambio_dir_anterior ON CAMBIO_DIRECCION(direccion_anterior_id);
+CREATE INDEX idx_cambio_dir_nueva ON CAMBIO_DIRECCION(direccion_nueva_id);

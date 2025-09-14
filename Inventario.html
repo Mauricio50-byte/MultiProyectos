@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Inventario para Excel</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 2em;
+        }
+        
+        .stat-card p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102,126,234,0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .preview {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e3f2fd;
+        }
+        
+        .category-filter {
+            margin-bottom: 20px;
+        }
+        
+        select {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            min-width: 200px;
+        }
+        
+        .alert {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #c3e6cb;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏪 Generador de Inventario para Excel</h1>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3 id="totalProducts">0</h3>
+                <p>Total Productos</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalCategories">0</h3>
+                <p>Categorías</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalValue">$0</h3>
+                <p>Valor Total</p>
+            </div>
+        </div>
+        
+        <div class="category-filter">
+            <label for="categoryFilter">Filtrar por categoría: </label>
+            <select id="categoryFilter">
+                <option value="">Todas las categorías</option>
+            </select>
+        </div>
+        
+        <div class="controls">
+            <button onclick="generateCSV()">📊 Descargar CSV para Excel</button>
+            <button onclick="generateExcelFormat()">📋 Copiar Formato Excel</button>
+            <button onclick="showPreview()">👁️ Vista Previa</button>
+        </div>
+        
+        <div class="alert" id="alert"></div>
+        
+        <div class="preview" id="preview" style="display: none;">
+            <h3>Vista Previa de Datos</h3>
+            <div id="previewContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const products = [
+            // Datos de tus facturas
+            { name: "TOMATE", category: "Alimentos Frescos", quantity: 30, price: 1000, description: "Tomate fresco" },
+            { name: "CEBOLLA MORADA", category: "Alimentos Frescos", quantity: 10, price: 1900, description: "Cebolla morada" },
+            { name: "CILANTRO", category: "Alimentos Frescos", quantity: 1, price: 11000, description: "Cilantro fresco" },
+            { name: "CEBOLLIN", category: "Alimentos Frescos", quantity: 4, price: 1200, description: "Cebollín fresco" },
+            { name: "APIO", category: "Alimentos Frescos", quantity: 2, price: 1800, description: "Apio fresco" },
+            { name: "PIMENTON", category: "Alimentos Frescos", quantity: 3, price: 2000, description: "Pimentón" },
+            { name: "KATORY*25", category: "Condimentos", quantity: 1, price: 17000, description: "Katory condimento x25" },
+            { name: "SUAVITEL DOYP 55*180ML", category: "Limpieza", quantity: 10, price: 1500, description: "Suavitel doypack 55ml x 180ml" },
+            { name: "BLANCOX REPT. 24*500ML", category: "Limpieza", quantity: 1, price: 30500, description: "Blancox repuesto 24 unidades de 500ml" },
+            { name: "BLANCOX REPT 24*500ML", category: "Limpieza", quantity: 1, price: 2500, description: "Blancox repuesto 24 unidades de 500ml" },
+            { name: "DETERGENTE DERSA *125GR*50", category: "Limpieza", quantity: 10, price: 1234, description: "Detergente Dersa 125gr x 50 unidades" },
+            { name: "ARROZ DONA MARLI 5", category: "Cereales", quantity: 450, price: 450, description: "Arroz Doña Marli 5 libras" },
+            { name: "PANELA GRANDE XUNIDAD", category: "Endulzantes", quantity: 80, price: 1800, description: "Panela grande por unidad" },
+            { name: "SAL YODIBLANCA*25", category: "Condimentos", quantity: 125, price: 460, description: "Sal yodizada blanca 25kg" },
+            { name: "ACEITE IDEAL*12*900", category: "Aceites", quantity: 12, price: 5000, description: "Aceite Ideal 12 unidades de 900ml" },
+            { name: "ACEITE IDEAL*6*3000", category: "Aceites", quantity: 6, price: 17000, description: "Aceite Ideal 6 unidades de 3000ml" },
+            { name: "CEBOLLA XLIBRA", category: "Alimentos Frescos", quantity: 10, price: 2500, description: "Cebolla por libra" },
+            { name: "PAPA XLIBRA", category: "Alimentos Frescos", quantity: 15, price: 1300, description: "Papa por libra" },
+            { name: "ZANAHORIA X LIBRA", category: "Alimentos Frescos", quantity: 10, price: 1500, description: "Zanahoria por libra" },
+            { name: "TOMATE X LIBRA", category: "Alimentos Frescos", quantity: 20, price: 1850, description: "Tomate por libra" },
+            { name: "AJI PIMENTON", category: "Condimentos", quantity: 5, price: 4000, description: "Ají pimentón" },
+            { name: "CEBOLLIN", category: "Alimentos Frescos", quantity: 5, price: 2000, description: "Cebollín fresco" },
+            { name: "CILANTRO", category: "Alimentos Frescos", quantity: 2, price: 4000, description: "Cilantro fresco" },
+            { name: "APIO", category: "Alimentos Frescos", quantity: 2, price: 2000, description: "Apio fresco" },
+            { name: "MANGUERAS", category: "Varios", quantity: 44, price: 910, description: "Mangueras" },
+            { name: "ACEITE DE 5 LITRO X 4", category: "Aceites", quantity: 6, price: 27000, description: "Aceite de 5 litros pack de 4" },
+            { name: "BOLSA DE HIELO CORTO", category: "Varios", quantity: 3, price: 500, description: "Bolsa de hielo cortado" },
+            { name: "BOLSA DE 25 KILO BLANCA", category: "Varios", quantity: 1, price: 17000, description: "Bolsa de 25 kilos blanca" },
+            { name: "BLANQUEADOR*2000", category: "Limpieza", quantity: 4, price: 3500, description: "Blanqueador 2000ml" },
+            { name: "PICASO ORIGINA", category: "Varios", quantity: 10, price: 13000, description: "Picaso original" },
+            { name: "AZUCAR* LIBRA", category: "Endulzantes", quantity: 300, price: 1680, description: "Azúcar por libra" },
+            { name: "AGUA IMM*12", category: "Bebidas", quantity: 12, price: 708.34, description: "Agua IMM pack de 12" },
+            { name: "AGUA BRISA*20", category: "Bebidas", quantity: 2, price: 2500, description: "Agua Brisa pack de 20" },
+            { name: "FRIJOL ROJO*180", category: "Cereales", quantity: 10, price: 5000, description: "Frijol rojo 180g" },
+            { name: "FRIJOL CABEZITA NEGRA X LIBRA", category: "Cereales", quantity: 10, price: 3500, description: "Frijol cabezita negra por libra" },
+            { name: "MAIZ CUBA X90 LB", category: "Cereales", quantity: 50, price: 1000, description: "Maíz Cuba 90 libras" },
+            { name: "GASEOSA KOLA ROMAN 1.5 X12", category: "Bebidas", quantity: 12, price: 4000, description: "Gaseosa Kola Román 1.5L pack de 12" },
+            { name: "GASEOSA COCACOLA D 1.75 X12", category: "Bebidas", quantity: 12, price: 5416.67, description: "Gaseosa Coca-Cola 1.75L pack de 12" },
+            { name: "BOLSA DE BOLI*50", category: "Varios", quantity: 10, price: 250, description: "Bolsa de bolis pack de 50" },
+            { name: "BOLSA DE 2 LI BRA", category: "Varios", quantity: 10, price: 800, description: "Bolsa de 2 libras" },
+            { name: "CAFE ALMENDRA GRANDE", category: "Bebidas", quantity: 240, price: 1850, description: "Café almendra grande" },
+            { name: "ACEITE IDEAL *24*220", category: "Aceites", quantity: 48, price: 1800, description: "Aceite Ideal 24 unidades de 220ml" },
+            { name: "AJO POR LIBRA", category: "Condimentos", quantity: 5, price: 6500, description: "Ajo por libra" },
+            { name: "PASTA ESPAGUETTI COMARRICO", category: "Pastas", quantity: 50, price: 850, description: "Pasta espaguetti Comarrico" },
+            { name: "PASTA TROCITO NIEVE", category: "Pastas", quantity: 25, price: 800, description: "Pasta trocito nieve" },
+            { name: "MAGGI DESMENUZADA X 30", category: "Condimentos", quantity: 72, price: 400, description: "Maggi desmenuzada pack de 30" },
+            { name: "MAGGY DESMENUZADA X 30", category: "Condimentos", quantity: 72, price: 400, description: "Maggy desmenuzada pack de 30" },
+            { name: "COMPLETISIMO", category: "Condimentos", quantity: 160, price: 400, description: "Completísimo condimento" },
+            { name: "TRIFOGON PRANDE*24 LA CAJA", category: "Condimentos", quantity: 24, price: 850, description: "Trifogón grande 24 unidades por caja" },
+            { name: "TRIFOGON PEQUEÑO XUNIDAD 60*24", category: "Condimentos", quantity: 144, price: 125, description: "Trifogón pequeño 60 unidades x 24" },
+            { name: "DON COLOR ACHIOTE", category: "Condimentos", quantity: 250, price: 40, description: "Don Color achiote" },
+            { name: "PIMIENTA COMARRICO XUNIDAD", category: "Condimentos", quantity: 150, price: 40, description: "Pimienta Comarrico por unidad" },
+            { name: "COMINO COMARRICO*50", category: "Condimentos", quantity: 150, price: 40, description: "Comino Comarrico pack de 50" },
+            { name: "LECHE KLIN SOBRE*16", category: "Lácteos", quantity: 16, price: 1300, description: "Leche Klin sobre pack de 16" },
+            { name: "COLGATE DE 60 EXTRABLANCURA", category: "Higiene Personal", quantity: 12, price: 3500, description: "Colgate 60ml extrablancura" },
+            { name: "PAÑAL HOGGI VERDE ETAPA 3", category: "Higiene Personal", quantity: 25, price: 900, description: "Pañal Hoggi verde etapa 3" },
+            { name: "PAÑAL HOGGI VERDE ETAPA 4", category: "Higiene Personal", quantity: 25, price: 1120, description: "Pañal Hoggi verde etapa 4" },
+            { name: "PRESTOBARRA DORCO", category: "Higiene Personal", quantity: 48, price: 500, description: "Prestobarra Dorco" },
+            { name: "KOTEX NOCTURNA X30", category: "Higiene Personal", quantity: 1, price: 17000, description: "Kotex nocturna pack de 30" },
+            { name: "PANTELIN ATR", category: "Higiene Personal", quantity: 140, price: 1400, description: "Pantelin ATR" },
+            { name: "DETERGENTE DERSA DE 125GRX50", category: "Limpieza", quantity: 48, price: 1400, description: "Detergente Dersa 125gr x 50 unidades" },
+            { name: "DETERGENTE DERSA DE 500GRX40", category: "Limpieza", quantity: 20, price: 4800, description: "Detergente Dersa 500gr x 40 unidades" },
+            { name: "DETERGENTE 3D DE 1000X12", category: "Limpieza", quantity: 6, price: 7500, description: "Detergente 3D 1000g x 12 unidades" },
+            { name: "JABON AZUL LAVANDEPODERX3", category: "Limpieza", quantity: 10, price: 2100, description: "Jabón azul lavandería x 3" },
+            { name: "JABON UNICO PLUS*24", category: "Limpieza", quantity: 5, price: 2500, description: "Jabón único plus pack de 24" },
+            { name: "JABON PROTEX GRANDE*72", category: "Higiene Personal", quantity: 6, price: 3500, description: "Jabón Protex grande pack de 72" },
+            { name: "JABON LEMON X36", category: "Higiene Personal", quantity: 20, price: 2200, description: "Jabón Lemon pack de 36" },
+            { name: "LAVA PLATOS LAVAGEL", category: "Limpieza", quantity: 2, price: 13500, description: "Lavaplatos Lavagel" },
+            { name: "MOSTAZA COJIN", category: "Condimentos", quantity: 96, price: 200, description: "Mostaza Cojín" },
+            { name: "SALSA NEGRA COJIN", category: "Condimentos", quantity: 96, price: 200, description: "Salsa negra Cojín" },
+            { name: "VINAGRE BLANCO X SOBRE*48", category: "Condimentos", quantity: 48, price: 300, description: "Vinagre blanco sobre pack de 48" },
+            { name: "SALSA DE TOMATE BARY*120", category: "Condimentos", quantity: 50, price: 2000, description: "Salsa de tomate Bary pack de 120" },
+            { name: "SALSA DE TOMATE COJIN", category: "Condimentos", quantity: 48, price: 700, description: "Salsa de tomate Cojín" },
+            { name: "MOSTAZA BARY DOYPA", category: "Condimentos", quantity: 5, price: 2000, description: "Mostaza Bary doypack" },
+            { name: "SALSA NEGRA DOY PAC", category: "Condimentos", quantity: 40, price: 1800, description: "Salsa negra doypack" },
+            { name: "VINAGRE BLANCO FRASCO*24", category: "Condimentos", quantity: 10, price: 1000, description: "Vinagre blanco frasco pack de 24" },
+            { name: "VINAGRE BLANCO*6*3000", category: "Condimentos", quantity: 1, price: 4500, description: "Vinagre blanco 6 unidades de 3000ml" },
+            { name: "ATAFACIL", category: "Varios", quantity: 6, price: 2800, description: "Atafácil" },
+            { name: "MOSTAZ POMPEYA 1000", category: "Condimentos", quantity: 1, price: 8000, description: "Mostaza Pompeya 1000ml" },
+            { name: "BLANQUEADOR YES*24*500", category: "Limpieza", quantity: 24, price: 1200, description: "Blanqueador Yes 24 unidades de 500ml" },
+            { name: "BLANQUEADOR REPUESTO*24", category: "Limpieza", quantity: 24, price: 1250, description: "Blanqueador repuesto pack de 24" },
+            { name: "SUERO PEDIALITE*12", category: "Medicamentos", quantity: 3, price: 8500, description: "Suero Pedialite pack de 12" },
+            { name: "ELECTROLIT", category: "Bebidas", quantity: 3, price: 7500, description: "Electrolit" },
+            { name: "ATUN LOMO PERLLADO", category: "Enlatados", quantity: 20, price: 4000, description: "Atún lomo perfilado" },
+            { name: "MENTA HELADA ALDOR*24", category: "Dulces", quantity: 1, price: 7500, description: "Menta helada Aldor pack de 24" },
+            { name: "PAPEL FAMILIA MEGA ROLLOX24", category: "Higiene del Hogar", quantity: 6, price: 2200, description: "Papel familia mega rollo pack de 24" },
+            { name: "PAPEL FAMILIA FAMILIAR", category: "Higiene del Hogar", quantity: 6, price: 1500, description: "Papel familia familiar" },
+            { name: "SERVILLETA FAMILIA", category: "Higiene del Hogar", quantity: 3, price: 2000, description: "Servilleta familia" },
+            { name: "JUGO CALIFORNIA*24", category: "Bebidas", quantity: 24, price: 2291.67, description: "Jugo California pack de 24" },
+            { name: "GASEOSA IMM 400*", category: "Bebidas", quantity: 36, price: 958.34, description: "Gaseosa IMM 400ml" },
+            { name: "RICOMALTEADA*", category: "Bebidas", quantity: 16, price: 1500, description: "Rico malteada" },
+            { name: "FABULOSO DOYPAC", category: "Limpieza", quantity: 10, price: 1800, description: "Fabuloso doypack" },
+            { name: "DESINFECTANTE DELIDANY*8*2000", category: "Limpieza", quantity: 2, price: 12000, description: "Desinfectante Delidany 8 unidades de 2000ml" },
+            { name: "SUAVISANTE SOFLIN DE 900", category: "Limpieza", quantity: 6, price: 6000, description: "Suavizante Soflin 900ml" },
+            { name: "PAPA RULITA", category: "Snacks", quantity: 6, price: 7800, description: "Papa Rulita" },
+            { name: "EXTERMINADOR", category: "Limpieza", quantity: 5, price: 6500, description: "Exterminador" },
+            { name: "YARTA DOBLE AA", category: "Varios", quantity: 20, price: 950, description: "Yarta doble AA" }
+        ];
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+            populateCategories();
+        });
+
+        function updateStats() {
+            const totalProducts = products.length;
+            const categories = [...new Set(products.map(p => p.category))];
+            const totalValue = products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+
+            document.getElementById('totalProducts').textContent = totalProducts;
+            document.getElementById('totalCategories').textContent = categories.length;
+            document.getElementById('totalValue').textContent = '$' + totalValue.toLocaleString();
+        }
+
+        function populateCategories() {
+            const categories = [...new Set(products.map(p => p.category))].sort();
+            const select = document.getElementById('categoryFilter');
+            
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+        }
+
+        function getFilteredProducts() {
+            const selectedCategory = document.getElementById('categoryFilter').value;
+            if (!selectedCategory) return products;
+            return products.filter(product => product.category === selectedCategory);
+        }
+
+        function generateCSV() {
+            const filteredProducts = getFilteredProducts();
+            
+            // Encabezados que coinciden con tu plantilla de Excel
+            const headers = [
+                'Nombre',
+                'Precio de venta',
+                'Unidades disponibles',
+                'Categoría',
+                'Costo del producto',
+                'Unidades compradas',
+                'Código de barras o SKU',
+                'Descripción'
+            ];
+
+            // Crear CSV
+            let csvContent = headers.join(',') + '\n';
+            
+            filteredProducts.forEach(product => {
+                const row = [
+                    `"${product.name}"`,
+                    product.price,
+                    product.quantity,
+                    `"${product.category}"`,
+                    Math.round(product.price * 0.7), // Costo estimado (70% del precio de venta)
+                    product.quantity,
+                    `"SKU-${Math.random().toString(36).substr(2, 9).toUpperCase()}"`, // SKU generado
+                    `"${product.description}"`
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+
+            // Descargar archivo
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'inventario_productos.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showAlert('¡CSV descargado exitosamente! Ahora puedes importarlo en Excel.', 'success');
+        }
+
+        function generateExcelFormat() {
+            const filteredProducts = getFilteredProducts();
+            
+            let excelData = "Nombre\tPrecio de venta\tUnidades disponibles\tCategoría\tCosto del producto\tUnidades compradas\tCódigo de barras o SKU\tDescripción\n";
+            
+            filteredProducts.forEach(product => {
+                excelData += `${product.name}\t${product.price}\t${product.quantity}\t${product.category}\t${Math.round(product.price * 0.7)}\t${product.quantity}\tSKU-${Math.random().toString(36).substr(2, 9).toUpperCase()}\t${product.description}\n`;
+            });
+
+            navigator.clipboard.writeText(excelData).then(() => {
+                showAlert('¡Datos copiados al portapapeles! Pégalos directamente en Excel con Ctrl+V', 'success');
+            }).catch(() => {
+                showAlert('Error al copiar. Usa el botón de CSV en su lugar.', 'error');
+            });
+        }
+
+        function showPreview() {
+            const filteredProducts = getFilteredProducts();
+            const preview = document.getElementById('preview');
+            const content = document.getElementById('previewContent');
+            
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Cantidad</th>
+                            <th>Categoría</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            filteredProducts.slice(0, 20).forEach(product => {
+                const total = product.price * product.quantity;
+                tableHTML += `
+                    <tr>
+                        <td>${product.name}</td>
+                        <td>$${product.price.toLocaleString()}</td>
+                        <td>${product.quantity}</td>
+                        <td>${product.category}</td>
+                        <td>$${total.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table>';
+            
+            if (filteredProducts.length > 20) {
+                tableHTML += `<p><em>Mostrando los primeros 20 de ${filteredProducts.length} productos...</em></p>`;
+            }
+            
+            content.innerHTML = tableHTML;
+            preview.style.display = 'block';
+        }
+
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

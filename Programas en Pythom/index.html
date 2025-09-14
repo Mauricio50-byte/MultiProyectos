@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simulación Realista de Semáforos 3D</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+        }
+        .input-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h3>Semáforo 1</h3>
+        <div class="input-group">
+            <label>Velocidad promedio (km/h):</label>
+            <input type="number" id="speed1" value="40" min="0">
+        </div>
+        <div class="input-group">
+            <label>Vehículos retenidos:</label>
+            <input type="number" id="vehicles1" value="5" min="0">
+        </div>
+        <div class="input-group">
+            <label>Vehículos que pasan:</label>
+            <input type="number" id="passingVehicles1" value="10" min="0">
+        </div>
+        <div class="input-group">
+            <label>Tiempo de recolección (min):</label>
+            <input type="number" id="time1" value="5" min="0">
+        </div>
+        <div class="status" id="status1">
+            Estado: <span id="state1">Calculando...</span><br>
+            Densidad: <span id="density1">-</span><br>
+            Flujo: <span id="flow1">-</span><br>
+            Tiempo verde: <span id="greenTime1">-</span>s
+        </div>
+        
+        <h3>Semáforo 2</h3>
+        <div class="input-group">
+            <label>Velocidad promedio (km/h):</label>
+            <input type="number" id="speed2" value="35" min="0">
+        </div>
+        <div class="input-group">
+            <label>Vehículos retenidos:</label>
+            <input type="number" id="vehicles2" value="4" min="0">
+        </div>
+        <div class="input-group">
+            <label>Vehículos que pasan:</label>
+            <input type="number" id="passingVehicles2" value="8" min="0">
+        </div>
+        <div class="input-group">
+            <label>Tiempo de recolección (min):</label>
+            <input type="number" id="time2" value="5" min="0">
+        </div>
+        <div class="status" id="status2">
+            Estado: <span id="state2">Calculando...</span><br>
+            Densidad: <span id="density2">-</span><br>
+            Flujo: <span id="flow2">-</span><br>
+            Tiempo verde: <span id="greenTime2">-</span>s
+        </div>
+        
+        <button onclick="updateSimulation()" style="margin-top: 15px; padding: 8px 16px;">Actualizar Simulación</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let trafficLight1, trafficLight2;
+        let cars = [];
+        const ROAD_LENGTH = 60; // metros, según documento
+        const TAU = 1.5; // constante de tiempo del sistema
+        const ORANGE_TIME = 3; // segundos, según documento
+        
+        // Variables para el control de los semáforos
+        let light1State = { current: 'red', timeLeft: 0, greenTime: 0, redTime: 0 };
+        let light2State = { current: 'red', timeLeft: 0, greenTime: 0, redTime: 0 };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // Cielo azul
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Iluminación mejorada
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(100, 100, 100);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // Posición de cámara mejorada
+            camera.position.set(120, 80, 120);
+            camera.lookAt(0, 0, 0);
+
+            createEnvironment();
+            createTrafficLights();
+            createCars();
+
+            animate();
+            updateSimulation();
+        }
+
+        function createEnvironment() {
+            // Suelo
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshPhongMaterial({ color: 0x3a9b3a });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Carreteras
+            createRoad(new THREE.Vector3(0, 0.1, 0), ROAD_LENGTH * 2, 12, 0);
+            createRoad(new THREE.Vector3(0, 0.1, 0), 12, ROAD_LENGTH * 2, Math.PI/2);
+        }
+
+        function createRoad(position, width, height, rotation) {
+            // Asfalto
+            const roadGeometry = new THREE.PlaneGeometry(width, height);
+            const roadMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x333333,
+                side: THREE.DoubleSide
+            });
+            const road = new THREE.Mesh(roadGeometry, roadMaterial);
+            road.rotation.x = -Math.PI / 2;
+            road.rotation.z = rotation;
+            road.position.copy(position);
+            road.receiveShadow = true;
+            scene.add(road);
+
+            // Líneas de la carretera
+            const lineGeometry = new THREE.PlaneGeometry(width * 0.8, 0.3);
+            const lineMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xffffff,
+                side: THREE.DoubleSide
+            });
+            const line = new THREE.Mesh(lineGeometry, lineMaterial);
+            line.rotation.x = -Math.PI / 2;
+            line.rotation.z = rotation;
+            line.position.y = 0.11;
+            scene.add(line);
+        }
+
+        function createTrafficLight() {
+            const group = new THREE.Group();
+            
+            // Poste
+            const postGeometry = new THREE.CylinderGeometry(0.3, 0.4, 12);
+            const postMaterial = new THREE.MeshPhongMaterial({color: 0x333333});
+            const post = new THREE.Mesh(postGeometry, postMaterial);
+            post.position.y = 6;
+            post.castShadow = true;
+            group.add(post);
+            
+            // Caja del semáforo
+            const housingGeometry = new THREE.BoxGeometry(2, 6, 2);
+            const housingMaterial = new THREE.MeshPhongMaterial({color: 0x1a1a1a});
+            const housing = new THREE.Mesh(housingGeometry, housingMaterial);
+            housing.position.y = 10;
+            housing.castShadow = true;
+            group.add(housing);
+            
+            // Luces
+            const lights = {
+                red: createLight(0xff0000, 0, 11.5),
+                yellow: createLight(0xffff00, 0, 10),
+                green: createLight(0x00ff00, 0, 8.5)
+            };
+            
+            Object.values(lights).forEach(light => group.add(light));
+            group.lights = lights;
+            
+            return group;
+        }
+
+        function createLight(color, x, y) {
+            const geometry = new THREE.SphereGeometry(0.5);
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.2
+            });
+            const light = new THREE.Mesh(geometry, material);
+            light.position.set(x, y, 0);
+            return light;
+        }
+
+        function createCar() {
+            const group = new THREE.Group();
+            
+            // Cuerpo del auto
+            const bodyGeometry = new THREE.BoxGeometry(4, 1.5, 2);
+            const bodyMaterial = new THREE.MeshPhongMaterial({
+                color: Math.random() * 0xffffff
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.75;
+            body.castShadow = true;
+            group.add(body);
+            
+            // Techo
+            const roofGeometry = new THREE.BoxGeometry(2.5, 1, 1.8);
+            const roof = new THREE.Mesh(roofGeometry, bodyMaterial);
+            roof.position.y = 1.75;
+            roof.position.x = -0.2;
+            roof.castShadow = true;
+            group.add(roof);
+            
+            // Ruedas
+            const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.4);
+            const wheelMaterial = new THREE.MeshPhongMaterial({color: 0x333333});
+            const wheelPositions = [
+                [-1.5, 0.4, 1], [1.5, 0.4, 1],
+                [-1.5, 0.4, -1], [1.5, 0.4, -1]
+            ];
+            
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                wheel.position.set(...pos);
+                wheel.rotation.z = Math.PI/2;
+                wheel.castShadow = true;
+                group.add(wheel);
+            });
+            
+            return group;
+        }
+
+        function updateTrafficLightState(trafficLight, state) {
+            // Resetear todas las luces
+            Object.values(trafficLight.lights).forEach(light => {
+                light.material.emissiveIntensity = 0.2;
+            });
+            
+            // Activar la luz correspondiente
+            switch(state) {
+                case 'red':
+                    trafficLight.lights.red.material.emissiveIntensity = 1;
+                    break;
+                case 'yellow':
+                    trafficLight.lights.yellow.material.emissiveIntensity = 1;
+                    break;
+                case 'green':
+                    trafficLight.lights.green.material.emissiveIntensity = 1;
+                    break;
+            }
+        }
+
+        function calculateTrafficParameters(speed, vehicles, passingVehicles, time) {
+            // Densidad del tráfico = vehículos retenidos / longitud del tramo
+            const density = vehicles / ROAD_LENGTH;
+            
+            // Flujo vehicular = velocidad promedio * densidad del tráfico
+            const flow = (speed / 3.6) * density; // Convertir km/h a m/s
+            
+            // Tiempo en verde = -τ ln(1 - N/Q_in)
+            const greenTime = Math.max(0, -TAU * Math.log(1 - vehicles/flow));
+            
+            // Tiempo en rojo = tiempo en verde + tiempo en naranja
+            const redTime = greenTime + ORANGE_TIME;
+            
+            return { density, flow, greenTime, redTime };
+        }
+
+        function updateSimulation() {
+            // Obtener valores de entrada para ambos semáforos
+            const speed1 = parseFloat(document.getElementById('speed1').value);
+            const vehicles1 = parseFloat(document.getElementById('vehicles1').value);
+            const passingVehicles1 = parseFloat(document.getElementById('passingVehicles1').value);
+            const time1 = parseFloat(document.getElementById('time1').value);
+
+            const speed2 = parseFloat(document.getElementById('speed2').value);
+            const vehicles2 = parseFloat(document.getElementById('vehicles2').value);
+            const passingVehicles2 = parseFloat(document.getElementById('passingVehicles2').value);
+            const time2 = parseFloat(document.getElementById('time2').value);
+
+            // Calcular parámetros para ambos semáforos
+            const params1 = calculateTrafficParameters(speed1, vehicles1, passingVehicles1, time1);
+            const params2 = calculateTrafficParameters(speed2, vehicles2, passingVehicles2, time2);
+
+            // Actualizar estados de los semáforos
+            light1State = { 
+                current: 'green', 
+                timeLeft: params1.greenTime,
+                greenTime: params1.greenTime,
+                redTime: params1.redTime
+            };
+            
+            light2State = { 
+                current: 'red', 
+                timeLeft: params1.greenTime + ORANGE_TIME,
+                greenTime: params2.greenTime,
+                redTime: params2.redTime
+            };
+
+            // Actualizar display
+            document.getElementById('density1').textContent = params1.density.toFixed(2) + ' veh/m';
+            document.getElementById('flow1').textContent = params1.flow.toFixed(2) + ' veh/s';
+            document.getElementById('greenTime1').textContent = params1.greenTime.toFixed(1);
+            
+            document.getElementById('density2').textContent = params2.density.toFixed(2) + ' veh/m';
+            document.getElementById('flow2').textContent = params2.flow.toFixed(2) + ' veh/s';
+            document.getElementById('greenTime2').textContent = params2.greenTime.toFixed(1);
+
+            // Crear nuevos vehículos
+            createCars();
+        }
+
+        let lastTime = 0;
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+            
+            const deltaTime = (currentTime - lastTime) / 1000; // Convertir a segundos
+            lastTime = currentTime;
+            
+            // Actualizar estados de los semáforos
+            updateTrafficLightTimers(deltaTime);
+            
+            // Animar vehículos
+            updateVehicles(deltaTime);
+            
+            renderer.render(scene, camera);
+        }
+
+        function updateTrafficLightTimers(deltaTime) {
+            // Actualizar semáforo 1
+            light1State.timeLeft -= deltaTime;
+            if (light1State.timeLeft <= 0) {
+                switch (light1State.current) {
+                    case 'green':
+                        light1State.current = 'yellow';
+                        light1State.timeLeft = ORANGE_TIME;
+                        break;
+                    case 'yellow':
+                        light1State.current = 'red';
+                        light1State.timeLeft = light2State.greenTime;
+                        break;
+                    case 'red':
+                        light1State.current = 'green';
+                        light1State.timeLeft = light1State.greenTime;
+                        break;
+                }
+            }
+
+            // Actualizar semáforo 2
+            light2State.timeLeft -= deltaTime;
+            if (light2State.timeLeft <= 0) {
+                switch (light2State.current) {
+                    case 'green':
+                        light2State.current = 'yellow';
+                        light2State.timeLeft = ORANGE_TIME;
+                        break;
+                    case 'yellow':
+                        light2State.current = 'red';
+                        light2State.timeLeft = light1State.greenTime;
+                        break;
+                    case 'red':
+                        light2State.current = 'green';
+                        light2State.timeLeft = light2State.greenTime;
+                        break;
+                }
+            }
+
+            // Actualizar estados visuales
+            updateTrafficLightState(trafficLight1, light1State.current);
+            updateTrafficLightState(trafficLight2, light2State.current);
+            
+            // Actualizar display
+            document.getElementById('state1').textContent = 
+                light1State.current.charAt(0).toUpperCase() + light1State.current.slice(1) +
+                ` (${light1State.timeLeft.toFixed(1)}s)`;
+            document.getElementById('state2').textContent = 
+                light2State.current.charAt(0).toUpperCase() + light2State.current.slice(1) +
+                ` (${light2State.timeLeft.toFixed(1)}s)`;
+        }
+
+        function createCars() {
+            // Eliminar coches existentes
+            cars.forEach(car => scene.remove(car));
+            cars = [];
+            
+            // Crear nuevos coches
+            const carsPerRoad = Math.max(
+                parseInt(document.getElementById('vehicles1').value),
+                parseInt(document.getElementById('vehicles2').value)
+            );
+            
+            // Crear coches para la carretera horizontal
+            for(let i = 0; i < carsPerRoad; i++) {
+                const car = createCar();
+                car.position.set(
+                    -ROAD_LENGTH/2 + (ROAD_LENGTH * i / carsPerRoad),
+                    1,
+                    -3
+                );
+                car.rotation.y = 0;
+                car.direction = 'horizontal';
+                car.speed = parseFloat(document.getElementById('speed1').value) / 3.6; // km/h a m/s
+                scene.add(car);
+                cars.push(car);
+            }
+            
+            // Crear coches para la carretera vertical
+            for(let i = 0; i < carsPerRoad; i++) {
+                const car = createCar();
+                car.position.set(
+                    3,
+                    1,
+                    -ROAD_LENGTH/2 + (ROAD_LENGTH * i / carsPerRoad)
+                );
+                car.rotation.y = Math.PI/2;
+                car.direction = 'vertical';
+                car.speed = parseFloat(document.getElementById('speed2').value) / 3.6; // km/h a m/s
+                scene.add(car);
+                cars.push(car);
+            }
+        }
+
+        function updateVehicles(deltaTime) {
+            cars.forEach(car => {
+                let shouldMove = false;
+                
+                // Verificar si el coche está cerca de la intersección
+                const isNearIntersection = 
+                    (car.direction === 'horizontal' && Math.abs(car.position.x) < 7) ||
+                    (car.direction === 'vertical' && Math.abs(car.position.z) < 7);
+                
+                // Determinar si el coche debe moverse basado en el estado del semáforo
+                if (isNearIntersection) {
+                    if (car.direction === 'horizontal') {
+                        shouldMove = light1State.current === 'green';
+                    } else {
+                        shouldMove = light2State.current === 'green';
+                    }
+                } else {
+                    shouldMove = true;
+                }
+                
+                // Mover el coche si está permitido
+                if (shouldMove) {
+                    if (car.direction === 'horizontal') {
+                        car.position.x += car.speed * deltaTime;
+                        if (car.position.x > ROAD_LENGTH/2) {
+                            car.position.x = -ROAD_LENGTH/2;
+                        }
+                    } else {
+                        car.position.z += car.speed * deltaTime;
+                        if (car.position.z > ROAD_LENGTH/2) {
+                            car.position.z = -ROAD_LENGTH/2;
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTrafficLights() {
+            trafficLight1 = createTrafficLight();
+            trafficLight2 = createTrafficLight();
+            
+            trafficLight1.position.set(ROAD_LENGTH/2, 0, -6);
+            trafficLight2.position.set(-6, 0, ROAD_LENGTH/2);
+            trafficLight2.rotation.y = Math.PI/2;
+            
+            scene.add(trafficLight1);
+            scene.add(trafficLight2);
+        }
+
+        // Manejar redimensionamiento de ventana
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Inicializar la escena
+        init();
+    </script>
+</body>
+</html>

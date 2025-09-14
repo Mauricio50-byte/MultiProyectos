@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Rincón del Pan - Panadería Artesanal</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS personalizado -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Barra de navegación -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-bread-slice"></i> El Rincón del Pan
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#home">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#productos">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#sobreNosotros">Sobre Nosotros</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contacto">Contacto</a>
+                    </li>
+                </ul>
+                <form class="d-flex me-3">
+                    <input class="form-control me-2" type="search" placeholder="Buscar productos" aria-label="Search">
+                    <button class="btn btn-outline-success" type="submit">Buscar</button>
+                </form>
+                <div class="d-flex">
+                    <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">
+                        <i class="fas fa-user"></i> Ingresar
+                    </button>
+                    <button class="btn btn-primary position-relative" id="botonCarrito" data-bs-toggle="offcanvas" data-bs-target="#carritoOffcanvas">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="contadorCarrito">
+                            0
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sección de inicio/hero -->
+    <section id="home" class="hero-section">
+        <div class="container text-center">
+            <h1>Bienvenido a El Rincón del Pan</h1>
+            <p class="lead">Panes artesanales horneados con amor desde 1995</p>
+            <a href="#productos" class="btn btn-primary btn-lg">Ver nuestros productos</a>
+        </div>
+    </section>
+
+    <!-- Sección de categorías/filtros -->
+    <section class="py-4 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center mb-4">
+                    <h2>Descubre nuestras categorías</h2>
+                </div>
+                <div class="col-12">
+                    <div class="d-flex justify-content-center categoria-filtros">
+                        <button class="btn btn-filtro active" data-categoria="todos">Todos</button>
+                        <button class="btn btn-filtro" data-categoria="panes">Panes</button>
+                        <button class="btn btn-filtro" data-categoria="dulces">Dulces</button>
+                        <button class="btn btn-filtro" data-categoria="salados">Salados</button>
+                        <button class="btn btn-filtro" data-categoria="integrales">Integrales</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de productos -->
+    <section id="productos" class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-4">Nuestros Productos</h2>
+            <div class="row g-4" id="contenedorProductos">
+                <!-- Los productos se cargarán dinámicamente con JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección sobre nosotros -->
+    <section id="sobreNosotros" class="py-5 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h2>Sobre Nosotros</h2>
+                    <p>En El Rincón del Pan, nos dedicamos a la elaboración de panes artesanales con ingredientes 100% naturales y procesos tradicionales que respetan el tiempo de fermentación.</p>
+                    <p>Nuestro maestro panadero, con más de 25 años de experiencia, supervisa personalmente cada lote para garantizar la calidad y el sabor inconfundible que nos caracteriza.</p>
+                    <p>Todos nuestros productos son elaborados diariamente, sin conservantes ni aditivos artificiales, porque creemos en ofrecer alimentos saludables y deliciosos.</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h3 class="card-title">Nuestros Valores</h3>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Tradición e innovación</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Ingredientes naturales y de proximidad</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Elaboración artesanal</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Sostenibilidad</li>
+                                <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Servicio al cliente</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de testimonios -->
+    <section class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-4">Lo que dicen nuestros clientes</h2>
+            <div id="testimonios-carousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    <div class="carousel-item active">
+                        <div class="testimonio-container">
+                            <div class="testimonio-texto">
+                                <p>"El mejor pan que he probado en la ciudad. Su pan de masa madre es simplemente excepcional."</p>
+                                <h5>- María Rodríguez</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="carousel-item">
+                        <div class="testimonio-container">
+                            <div class="testimonio-texto">
+                                <p>"Sus croissants son idénticos a los que probé en Francia. ¡Deliciosos y auténticos!"</p>
+                                <h5>- Carlos Gómez</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="carousel-item">
+                        <div class="testimonio-container">
+                            <div class="testimonio-texto">
+                                <p>"Encargué una tarta para el cumpleaños de mi hija y quedó maravillosa. Definitivamente volveré a comprar."</p>
+                                <h5>- Laura Martínez</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#testimonios-carousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#testimonios-carousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Siguiente</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de suscripción al boletín -->
+    <section class="py-5 bg-primary text-white">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2>Suscríbete a nuestro boletín</h2>
+                    <p>Recibe nuestras últimas novedades, recetas y ofertas especiales.</p>
+                </div>
+                <div class="col-md-6">
+                    <form id="formularioSuscripcion" class="row g-3">
+                        <div class="col-md-8">
+                            <input type="email" class="form-control" id="emailSuscripcion" placeholder="Tu correo electrónico" required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-light w-100">Suscribirme</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de contacto -->
+    <section id="contacto" class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h2>Contáctanos</h2>
+                    <p>Si tienes alguna consulta o quieres hacer un pedido especial, rellena el formulario y nos pondremos en contacto contigo lo antes posible.</p>
+                    
+                    <div class="contacto-info mt-4">
+                        <p><i class="fas fa-map-marker-alt me-2"></i> Calle Panadería 123, Ciudad</p>
+                        <p><i class="fas fa-phone me-2"></i> +1 234 567 890</p>
+                        <p><i class="fas fa-envelope me-2"></i> info@elrincondelpan.com</p>
+                        <p><i class="fas fa-clock me-2"></i> Lunes a Sábado: 7:00 - 20:00</p>
+                    </div>
+                    
+                    <div class="redes-sociales mt-4">
+                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="formularioContacto">
+                                <div class="mb-3">
+                                    <label for="nombreContacto" class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" id="nombreContacto" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="emailContacto" class="form-label">Correo Electrónico</label>
+                                    <input type="email" class="form-control" id="emailContacto" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="asuntoContacto" class="form-label">Asunto</label>
+                                    <input type="text" class="form-control" id="asuntoContacto" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mensajeContacto" class="form-label">Mensaje</label>
+                                    <textarea class="form-control" id="mensajeContacto" rows="4" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Enviar Mensaje</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Botón de WhatsApp flotante -->
+    <a href="https://wa.me/1234567890" class="whatsapp-btn" target="_blank">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- Offcanvas del carrito -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="carritoOffcanvas" aria-labelledby="carritoOffcanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="carritoOffcanvasLabel">Tu Carrito de Compras</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div id="productosCarrito">
+                <!-- Aquí se mostrarán los productos en el carrito -->
+                <p id="carritoVacio" class="text-center">Tu carrito está vacío</p>
+            </div>
+            <div id="resumenCarrito" class="border-top pt-3 mt-3 d-none">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <span id="subtotalCarrito">$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>IVA (19%):</span>
+                    <span id="ivaCarrito">$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3 fw-bold">
+                    <span>Total:</span>
+                    <span id="totalCarrito">$0.00</span>
+                </div>
+                <button class="btn btn-success w-100" id="botonProcesarPago">Procesar Pago</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de inicio de sesión -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loginModalLabel">Iniciar Sesión</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="loginTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-tab-pane" type="button" role="tab" aria-controls="login-tab-pane" aria-selected="true">Iniciar Sesión</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-tab-pane" type="button" role="tab" aria-controls="register-tab-pane" aria-selected="false">Registrarse</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="loginTabContent">
+                        <div class="tab-pane fade show active" id="login-tab-pane" role="tabpanel" aria-labelledby="login-tab" tabindex="0">
+                            <form id="formularioLogin" class="mt-3">
+                                <div class="mb-3">
+                                    <label for="emailLogin" class="form-label">Correo Electrónico</label>
+                                    <input type="email" class="form-control" id="emailLogin" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="passwordLogin" class="form-label">Contraseña</label>
+                                    <input type="password" class="form-control" id="passwordLogin" required>
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="recordarLogin">
+                                    <label class="form-check-label" for="recordarLogin">Recordarme</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+                            </form>
+                        </div>
+                        <div class="tab-pane fade" id="register-tab-pane" role="tabpanel" aria-labelledby="register-tab" tabindex="0">
+                            <form id="formularioRegistro" class="mt-3">
+                                <div class="mb-3">
+                                    <label for="nombreRegistro" class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" id="nombreRegistro" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="apellidoRegistro" class="form-label">Apellido</label>
+                                    <input type="text" class="form-control" id="apellidoRegistro" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="emailRegistro" class="form-label">Correo Electrónico</label>
+                                    <input type="email" class="form-control" id="emailRegistro" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="passwordRegistro" class="form-label">Contraseña</label>
+                                    <input type="password" class="form-control" id="passwordRegistro" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="confirmarPasswordRegistro" class="form-label">Confirmar Contraseña</label>
+                                    <input type="password" class="form-control" id="confirmarPasswordRegistro" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Registrarse</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de pago -->
+    <div class="modal fade" id="pagoModal" tabindex="-1" aria-labelledby="pagoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pagoModalLabel">Procesar Pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Información de Envío</h6>
+                            <form id="formularioEnvio">
+                                <div class="mb-3">
+                                    <label for="nombreEnvio" class="form-label">Nombre Completo</label>
+                                    <input type="text" class="form-control" id="nombreEnvio" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="direccionEnvio" class="form-label">Dirección</label>
+                                    <input type="text" class="form-control" id="direccionEnvio" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="ciudadEnvio" class="form-label">Ciudad</label>
+                                    <input type="text" class="form-control" id="ciudadEnvio" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="telefonoEnvio" class="form-label">Teléfono</label>
+                                    <input type="tel" class="form-control" id="telefonoEnvio" required>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Método de Pago</h6>
+                            <div class="metodos-pago">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="metodoPago" id="tarjetaCredito" value="tarjetaCredito" checked>
+                                    <label class="form-check-label" for="tarjetaCredito">
+                                        <i class="far fa-credit-card me-2"></i> Tarjeta de Crédito
+                                    </label>
+                                </div>
+                                <div id="datosTarjeta">
+                                    <div class="mb-3">
+                                        <label for="numeroTarjeta" class="form-label">Número de Tarjeta</label>
+                                        <input type="text" class="form-control" id="numeroTarjeta" placeholder="1234 5678 9012 3456">
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="fechaExpiracion" class="form-label">Fecha de Expiración</label>
+                                            <input type="text" class="form-control" id="fechaExpiracion" placeholder="MM/AA">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="codigoSeguridad" class="form-label">CVV</label>
+                                            <input type="text" class="form-control" id="codigoSeguridad" placeholder="123">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="metodoPago" id="paypal" value="paypal">
+                                    <label class="form-check-label" for="paypal">
+                                        <i class="fab fa-paypal me-2"></i> PayPal
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="metodoPago" id="nequi" value="nequi">
+                                    <label class="form-check-label" for="nequi">
+                                        <i class="fas fa-mobile-alt me-2"></i> Nequi
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="metodoPago" id="contraEntrega" value="contraEntrega">
+                                    <label class="form-check-label" for="contraEntrega">
+                                        <i class="fas fa-money-bill-wave me-2"></i> Pago contra entrega
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6>Resumen del Pedido</h6>
+                            <div id="resumenPedido" class="border p-3">
+                                <!-- El resumen del pedido se mostrará aquí -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="botonFinalizarCompra">Finalizar Compra</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación -->
+    <div class="modal fade" id="confirmacionModal" tabindex="-1" aria-labelledby="confirmacionModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmacionModalLabel">¡Pedido Confirmado!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
+                    <h4>¡Gracias por tu compra!</h4>
+                    <p>Tu pedido ha sido procesado correctamente.</p>
+                    <p>Hemos enviado un correo electrónico con los detalles de tu pedido.</p>
+                    <p>Número de pedido: <strong id="numeroPedido"></strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-5 bg-dark text-white">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5>El Rincón del Pan</h5>
+                    <p>Panadería artesanal desde 1995. Elaboramos panes de calidad con ingredientes naturales y métodos tradicionales.</p>
+                </div>
+                <div class="col-md-2 mb-4 mb-md-0">
+                    <h5>Enlaces</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#home" class="text-white">Inicio</a></li>
+                        <li><a href="#productos" class="text-white">Productos</a></li>
+                        <li><a href="#sobreNosotros" class="text-white">Sobre Nosotros</a></li>
+                        <li><a href="#contacto" class="text-white">Contacto</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-4 mb-md-0">
+                    <h5>Contacto</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-map-marker-alt me-2"></i> Calle Panadería 123, Ciudad</li>
+                        <li><i class="fas fa-phone me-2"></i> +1 234 567 890</li>
+                        <li><i class="fas fa-envelope me-2"></i> info@elrincondelpan.com</li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Síguenos</h5>
+                    <div class="redes-sociales">
+                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    </div>
+                    <div class="mt-3">
+                        <h6>Métodos de Pago</h6>
+                        <div class="metodos-pago">
+                            <i class="fab fa-cc-visa fa-2x me-2"></i>
+                            <i class="fab fa-cc-mastercard fa-2x me-2"></i>
+                            <i class="fab fa-cc-amex fa-2x me-2"></i>
+                            <i class="fab fa-paypal fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <p class="mb-0">&copy; 2025 El Rincón del Pan. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JavaScript personalizado -->
+    <script src="app.js"></script>
+</body>
+</html>

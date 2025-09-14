@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://kit.fontawesome.com/a2dd6045c4.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="style.css">
+    <title>Login & Registro</title>
+</head>
+<body>
+    <header>
+        <h2 class="Logo">SportsBets360FMK</h2>
+        <nav class="navegacion">
+            <a href="#">Inicio</a>
+            <a href="#">Informacion</a>
+            <a href="#">Servicios</a>
+            <a href="#">Contactos</a>
+            <button class="btn_button" >Iniciar Sesión</button>
+        </nav>
+    </header>
+    
+    <div class="fondo">
+        <span class="icono-cerrar"><i class="fa-solid fa-x"></i></span>
+        
+        <!-- Formulario de Inicio de Sesión -->
+        <div class="contenedor-form login">
+            <h2>Iniciar Sesión</h2>
+            <form action="#">
+                <div class="contenedor-input">
+                    <span class="icono"><i class="fa-solid fa-envelope"></i></span>
+                    <input type="email">
+                    <label for="#">Email</label>
+                </div>
+                <div class="contenedor-input">
+                    <span class="icono"><i class="fa-solid fa-lock"></i></span>
+                    <input type="password" >
+                    <label for="#">Contraseña</label>
+                </div>
+                <div class="recordar">
+                    <label for="#"><input type="checkbox"> Recordar Sesion</label>
+                    <a href="#">¿Olvide mi contraseña?</a>
+                </div>
+                <a class="btn"  href="/Menu/index2.html">Iniciar Sesion</a>
+                <div class="registrar">
+                    <p>¿No tienes cuenta? <a href="#" class="registrar-link">Registrate</a></p>
+                </div>
+            </form>
+        </div>
+
+        <!-- Formulario de Registro -->
+        <div class="contenedor-form registrar hide">
+            <h2>Registrarse</h2>
+            <form action="#">
+                <div class="contenedor-input">
+                    <span class="icono"><i class="fa-solid fa-user"></i></span>
+                    <input type="text" required>
+                    <label for="#">Nombre de Usuario</label>
+                </div>
+                <div class="contenedor-input">
+                    <span class="icono"><i class="fa-solid fa-envelope"></i></span>
+                    <input type="email" required>
+                    <label for="#">Correo Electronico</label>
+                </div>
+                <div class="contenedor-input">
+                    <span class="icono"><i class="fa-solid fa-lock"></i></span>
+                    <input type="password" required>
+                    <label for="#">Contraseña</label>
+                </div>
+                <div class="recordar">
+                    <label for="#"><input type="checkbox">Acepto los términos y condiciones</label>
+                </div>
+                <button type="submit" class="btn_button">Registrarme</button>
+                <div class="registrar">
+                    <p>¿Tienes una cuenta? <a href="#" class="login-link">Iniciar Sesión</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    
+    <script src="app.js"></script>
+</body>
+</html>
